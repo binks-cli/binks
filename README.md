@@ -1,21 +1,23 @@
-# Binks CLI 🤖
+# Binks CLI 🦢
 
-**Codex‑style shell assistant written in Go**
+**A cross-platform, Go-powered re-imagining of Codename Goose & Codex CLI**
 
-> **Project status – Pre‑alpha.**  Expect rapid changes and rough edges while we stand up the very first commands.
+> **Project status – Pre-alpha.**\
+> We are currently implementing **Stage 1 (command execution)** of the publicly-shared [implementation plan](docs/IMPLEMENTATION_PLAN.md). Expect breaking changes until we hit v0.1.0.
 
-Binks CLI is an experiment to recreate the OpenAI *Codex CLI* workflow using nothing but Go and open‑source tooling for a self-contained binary.
+Binks CLI lets you work inside a richer, single‑screen terminal UI that wraps **your existing shell** (bash, zsh, fish) across Linux, macOS, and Windows.\
+It starts life as a **fast, self-contained shell wrapper** and will grow into a fully-featured AI agent with Model-Context-Protocol (MCP) extensions once OpenAI/Anthropic access is approved.
 
 ---
 
-## 🚀 Quick start
+## 🚀 Quick start
 
 ```bash
-# 1. Nightly binary (replace <platform>)
-curl -L https://github.com/binks-cli/binks/releases/latest/download/binks_<platform>.tar.gz \
+# 1 · Download the latest nightly (replace <os>_<arch>)
+curl -L https://github.com/binks-cli/binks/releases/latest/download/binks_<os>_<arch>.tar.gz \
   | tar -xz -C /usr/local/bin
 
-# 2. Or build from source
+# 2 · Or build from source
 git clone https://github.com/binks-cli/binks && cd binks
 go build -o binks ./cmd/binks
 ```
@@ -27,75 +29,88 @@ $ binks
 binks:~/project >
 ```
 
+-
+
 ---
 
 ## 🛠 Building & testing
 
 ```bash
-go test ./...    # unit tests
+go test ./...        # unit & integration tests (TDD is enforced)
 go vet  ./...
+golangci-lint run    # optional – static analysis
 ```
 
-*Requires Go 1.22 + and any POSIX‑style shell (Bash, Zsh, Fish, etc.).*
+*Requires ****Go 1.22+**** and **``** in **``** (WSL / Git-Bash works on Windows).*
 
 ---
 
-## 🧩 Architecture snapshot
+## 🧩 Architecture snapshot (MVP → future)
 
 ```
-┌───────────────────────┐
-│        main.go        │
-└──────────┬────────────┘
+┌────────── main.go ──────────┐
+│  flags / config bootstrap   │
+└──────────┬──────────────────┘
            │
-    ┌──────▼─────┐   readline‑based
-    │  REPL Loop │─────────────────────────────┐
-    └──────┬─────┘                             │
-  built‑ins │ external                         │
-  ┌─────────▼───────────┐          ┌───────────▼───────────┐
-  │   builtin cmds      │          │    executor.Exec       │
-  │  (cd/exit/help)     │          │  wraps os/exec, Dir=cwd│
-  └─────────────────────┘          └───────────────────────┘
+   ┌───────▼────────┐  readline / promptui
+   │  REPL  (Stage2)│──────────────────────────────────────┐
+   └───────┬────────┘                                      │
+   built-ins│external                                      │
+┌───────────▼───────────┐            ┌─────────────────────▼──────────────────┐
+│   cd / exit / help    │            │  executor.RunCmd (Stage1–3)            │
+│   (session mutators)  │            │  - capture  (tests)                    │
+│                       │            │  - attach   (interactive programs)     │
+└───────────────────────┘            └─────────────────────────────────────────┘
+                                         ▲
+                                         │ later
+                                         │
+                                         │   ┌────────────── extension: shell / fs / git … ┐
+                                         └──▶│  AI Agent + MCP tool bus  (Stage6–7)        │
+                                             └──────────────────────────────────────────────┘
 ```
 
-- Single self‑contained Go binary
-- Session object owns working directory & options
-- Executor can run in *capture* (for tests) or *attached* (interactive programs) mode
-- AI agent will plug into the REPL loop via a strategy interface
+- **Single static Go binary** – no Node/Rust runtime.
+- **Session** owns working directory, history & options.
+- **Executor** may *capture* output for tests or *attach* directly for editors/IDEs.
+- **AI Agent** & **MCP extensions** plug in behind a strategy interface when enabled.
 
 ---
 
-## 🗺 Roadmap
+## 🗺 Roadmap & milestones
 
-| Milestone                                           | Status         |
-| --------------------------------------------------- | -------------- |
-| **v0.1** – Minimal REPL & command execution         | 🚧 in progress |
-| **v0.2** – Config file, prompt theming, first tests | 📝 planned     |
-| **v0.3** – Safety heuristics & public preview       | 📝 planned     |
-| **v1.0** – Optional AI agent (OpenAI / local)       | 🔜 back‑log    |
+| Stage | Focus                                                     | Target tag  |
+| ----- | --------------------------------------------------------- | ----------- |
+| 1     | Basic command execution (`binks "echo hi"`)               | v0.0.1      |
+| 2     | Interactive REPL loop + unit tests                        | v0.1.0      |
+| 3     | Built-ins (`cd`, `exit`), session state, Windows support  | v0.2.0      |
+| 4     | History, dynamic prompt, colour, interactive programs     | v0.3.0      |
+| 5     | CI matrix (win/linux/mac), high test coverage             | v0.4.0      |
+| 6     | LLM assistant (approval workflow, OpenAI chat)            | v0.5.0-beta |
+| 7     | MCP extension bus, file-IO / git tools, multi-model agent | v1.0.0      |
 
-Live tracking: see the [Projects board](https://github.com/binks-cli/binks/projects).
+> Detailed tasks live in the [GitHub Projects board](https://github.com/goose-cli/goose/projects).
 
 ---
 
 ## 🤝 Contributing
 
-1. **Fork** → `git checkout -b feat/awesome`
-2. **Write tests first** (`go test ./...`) – PRs without tests will be nudged 🙂
-3. Follow [**Conventional Commits**](https://www.conventionalcommits.org/)
-4. `go vet`, `go fmt`, make CI happy
-5. Open a PR & describe *why* the change matters
+1. \*\*Fork → \*\*``
+2. **Write tests first.** PRs without coverage will be asked to add it.
+3. Follow **Conventional Commits**.
+4. `go fmt`, `go vet`, ensure CI passes.
+5. Open a PR describing **why** the change matters.
 
-Bug reports & feature ideas are very welcome. See [`CONTRIBUTING.md`](CONTRIBUTING.md) for full guidelines.
+See [`CONTRIBUTING.md`](CONTRIBUTING.md) for the full guidelines.
 
 ---
 
 ## 📜 License
 
-Released under the **MIT License** – see [`LICENSE`](LICENSE).
+Released under **MIT**. See [`LICENSE`](LICENSE).
 
-> *Binks CLI is ****not**** affiliated with OpenAI or the original Codex CLI project.*\
-> *“Codex” is a trademark of OpenAI; “Binks” is an independent, open‑source homage implemented in Go.*
+> Binks CLI is **not** affiliated with Block’s Codename Goose, Anthropic, or OpenAI.\
+> “Binks” references the spirit of those projects; this is an independent re-implementation in Go.
 
 ---
 
-### ⭐ If Binks helps you, star the repo and tell your friends!
+### ⭐ If Binks CLI makes your day smoother, star the repo and share some love!
