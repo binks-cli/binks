@@ -4,9 +4,7 @@
 
 > **Project status – Pre‑alpha.**  Expect rapid changes and rough edges while we stand up the very first commands.
 
-Binks CLI is an experiment to recreate the smooth OpenAI *Codex CLI* workflow using nothing but Go and open‑source tooling.\
-Today: a thin wrapper that simply runs the commands you type.\
-Tomorrow: a safe, test‑driven agent that turns natural‑language requests into auditable shell actions—powered by either local LLMs (via Ollama) or cloud APIs (OpenAI, Anthropic, etc.).
+Binks CLI is an experiment to recreate the OpenAI *Codex CLI* workflow using nothing but Go and open‑source tooling for a self-contained binary.
 
 ---
 
