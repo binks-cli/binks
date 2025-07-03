@@ -5,14 +5,20 @@ import (
 	"os"
 
 	"github.com/binks-cli/binks/internal/executor"
+	"github.com/binks-cli/binks/shell"
 	"github.com/kballard/go-shellquote"
 )
 
 func main() {
 	if len(os.Args) < 2 {
-		fmt.Println("Usage: binks [command]")
-		fmt.Println("Interactive mode coming in Stage 2")
-		os.Exit(1)
+		// Start interactive REPL mode
+		sess := shell.NewSession()
+		err := shell.RunREPL(sess)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "REPL error: %v\n", err)
+			os.Exit(1)
+		}
+		return
 	}
 
 	// Properly quote and join all arguments after the program name to form the command

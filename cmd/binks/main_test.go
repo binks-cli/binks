@@ -32,19 +32,22 @@ func TestMainCLI_EchoCommand(t *testing.T) {
 }
 
 func TestMainCLI_NoArguments(t *testing.T) {
-	// Test with no arguments
+	// Test with no arguments - should start REPL mode
 	binPath := "../../binks"
 	cmd := exec.Command(binPath)
+	
+	// Provide input to exit the REPL immediately
+	cmd.Stdin = strings.NewReader("exit\n")
 	output, err := cmd.CombinedOutput()
 	
-	// Should exit with error
-	if err == nil {
-		t.Error("Expected error when no arguments provided")
+	// REPL should exit cleanly when receiving "exit" command
+	if err != nil {
+		t.Errorf("Expected no error for REPL mode, got: %v", err)
 	}
 	
 	outputStr := string(output)
-	if !strings.Contains(outputStr, "Usage:") {
-		t.Errorf("Expected usage message, got: %s", outputStr)
+	if !strings.Contains(outputStr, "binks>") {
+		t.Errorf("Expected REPL prompt, got: %s", outputStr)
 	}
 }
 
