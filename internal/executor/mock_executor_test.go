@@ -3,57 +3,43 @@ package executor
 import (
 	"errors"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestMockExecutor_RunCommand(t *testing.T) {
 	mock := NewMockExecutor()
-	
+
 	// Test successful command
 	mock.SetResponse("echo hello", "hello", nil)
 	output, err := mock.RunCommand("echo hello")
-	
-	if err != nil {
-		t.Errorf("Expected no error, got: %v", err)
-	}
-	
-	if output != "hello" {
-		t.Errorf("Expected 'hello', got '%s'", output)
-	}
+
+	require.NoError(t, err, "Expected no error")
+
+	assert.Equal(t, "hello", output, "Expected 'hello'")
 }
 
 func TestMockExecutor_RunCommand_WithError(t *testing.T) {
 	mock := NewMockExecutor()
-	
+
 	// Test command that returns error
 	expectedError := errors.New("command failed")
 	mock.SetResponse("failing-command", "error output", expectedError)
-	
+
 	output, err := mock.RunCommand("failing-command")
-	
-	if err == nil {
-		t.Error("Expected error, got none")
-	}
-	
-	if err != expectedError {
-		t.Errorf("Expected specific error, got: %v", err)
-	}
-	
-	if output != "error output" {
-		t.Errorf("Expected 'error output', got '%s'", output)
-	}
+
+	assert.Error(t, err, "Expected error")
+	assert.Equal(t, expectedError, err, "Expected specific error")
+	assert.Equal(t, "error output", output, "Expected 'error output'")
 }
 
 func TestMockExecutor_RunCommand_UnknownCommand(t *testing.T) {
 	mock := NewMockExecutor()
-	
+
 	// Test command that wasn't set up
 	output, err := mock.RunCommand("unknown-command")
-	
-	if err == nil {
-		t.Error("Expected error for unknown command, got none")
-	}
-	
-	if output != "" {
-		t.Errorf("Expected empty output, got '%s'", output)
-	}
+
+	assert.Error(t, err, "Expected error for unknown command")
+	assert.Equal(t, "", output, "Expected empty output")
 }
