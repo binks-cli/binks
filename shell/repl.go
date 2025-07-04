@@ -11,23 +11,24 @@ import (
 // RunREPL starts an interactive read-eval-print loop
 func RunREPL(sess *Session) error {
 	scanner := bufio.NewScanner(os.Stdin)
-	
-	fmt.Print("binks> ")
-	
+
+	// Print the prompt before the first input
+	fmt.Print(prompt(""))
+
 	for scanner.Scan() {
 		line := strings.TrimSpace(scanner.Text())
-		
+
 		// Skip empty lines
 		if line == "" {
-			fmt.Print("binks> ")
+			fmt.Print(prompt(""))
 			continue
 		}
-		
+
 		// Handle built-in exit commands
 		if isExitCommand(line) {
 			break
 		}
-		
+
 		// Execute external command
 		output, err := sess.Executor.RunCommand(line)
 		if err != nil {
@@ -36,10 +37,14 @@ func RunREPL(sess *Session) error {
 			// Print output without adding extra newlines
 			fmt.Print(output)
 		}
-		
-		fmt.Print("binks> ")
+
+		// Only print prompt if output does not end with a newline
+		if !strings.HasSuffix(output, "\n") {
+			fmt.Print("\n")
+		}
+		fmt.Print(prompt(""))
 	}
-	
+
 	// Check for scanner errors
 	if err := scanner.Err(); err != nil {
 		// Don't treat EOF as an error - it's expected when user presses Ctrl-D
@@ -48,7 +53,7 @@ func RunREPL(sess *Session) error {
 		}
 		return err
 	}
-	
+
 	return nil
 }
 
