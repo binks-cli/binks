@@ -40,7 +40,11 @@ func TestBashExecutor_RunCommand_TableDriven(t *testing.T) {
 		{
 			name:    "with arguments",
 			command: "echo 'hello world' | wc -w",
-			expect:  "       2\n",
+			outputCheck: func(t *testing.T, output string) {
+				// Accept both '2' and '       2' (with or without leading spaces)
+				trimmed := strings.TrimSpace(output)
+				assert.Equal(t, "2", trimmed, "Expected word count to be '2'")
+			},
 		},
 		{
 			name:    "empty command",
