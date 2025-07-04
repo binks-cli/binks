@@ -1,4 +1,4 @@
-# Binks CLI 🦢
+# Binks CLI 
 
 **A cross-platform, Go-powered re-imagining of Codename Goose & Codex CLI**
 
