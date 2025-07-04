@@ -13,14 +13,14 @@ func RunREPL(sess *Session) error {
 	scanner := bufio.NewScanner(os.Stdin)
 
 	// Print the prompt before the first input
-	fmt.Print(prompt(""))
+	fmt.Print(prompt(sess.Cwd()))
 
 	for scanner.Scan() {
 		line := strings.TrimSpace(scanner.Text())
 
 		// Skip empty lines
 		if line == "" {
-			fmt.Print(prompt(""))
+			fmt.Print(prompt(sess.Cwd()))
 			continue
 		}
 
@@ -29,8 +29,29 @@ func RunREPL(sess *Session) error {
 			break
 		}
 
+		// Handle built-in cd command
+		if strings.HasPrefix(line, "cd") {
+			fields := strings.Fields(line)
+			var cdArg string
+			if len(fields) > 1 {
+				cdArg = strings.Join(fields[1:], " ")
+			} else {
+				cdArg = ""
+			}
+			err := sess.ChangeDir(strings.TrimSpace(cdArg))
+			if err != nil {
+				errMsg := fmt.Sprintf("Error: %v", err)
+				fmt.Fprint(os.Stderr, errMsg)
+				if !strings.HasSuffix(errMsg, "\n") {
+					fmt.Fprint(os.Stderr, "\n")
+				}
+			}
+			fmt.Print(prompt(sess.Cwd()))
+			continue
+		}
+
 		// Execute external command
-		output, err := sess.Executor.RunCommand(line)
+		output, err := sess.RunCommand(line)
 		if err != nil {
 			errMsg := fmt.Sprintf("Error: %v", err)
 			fmt.Fprint(os.Stderr, errMsg)
@@ -46,7 +67,7 @@ func RunREPL(sess *Session) error {
 			}
 		}
 
-		fmt.Print(prompt(""))
+		fmt.Print(prompt(sess.Cwd()))
 	}
 
 	// Check for scanner errors

@@ -2,7 +2,9 @@ package shell
 
 import (
 	"errors"
+	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -221,5 +223,48 @@ func TestRunREPL_EOFHandling(t *testing.T) {
 	err = cmd.Wait()
 	if err != nil {
 		t.Fatalf("Expected clean exit on EOF, got error: %v", err)
+	}
+}
+
+func TestSession_ChangeDir(t *testing.T) {
+	tmp := t.TempDir()
+	sess := NewSession()
+
+	// Change to temp dir
+	err := sess.ChangeDir(tmp)
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	cwdEval, _ := filepath.EvalSymlinks(sess.Cwd())
+	tmpEval, _ := filepath.EvalSymlinks(tmp)
+	if cwdEval != tmpEval {
+		t.Errorf("expected cwd %q, got %q", tmpEval, cwdEval)
+	}
+
+	// Change to parent dir
+	err = sess.ChangeDir("..")
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	if sess.Cwd() == tmp {
+		t.Errorf("expected cwd to change from %q", tmp)
+	}
+
+	// Change to home dir
+	home, _ := os.UserHomeDir()
+	homeEval, _ := filepath.EvalSymlinks(home)
+	err = sess.ChangeDir("")
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	cwdEval, _ = filepath.EvalSymlinks(sess.Cwd())
+	if cwdEval != homeEval {
+		t.Errorf("expected cwd %q, got %q", homeEval, cwdEval)
+	}
+
+	// Invalid dir
+	err = sess.ChangeDir("/no/such/dir/shouldexist")
+	if err == nil {
+		t.Errorf("expected error for invalid dir")
 	}
 }
