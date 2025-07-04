@@ -1,3 +1,5 @@
+[![CI](https://github.com/binks-cli/binks/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/binks-cli/binks/actions/workflows/ci.yml)
+
 # Binks CLI 
 
 **A cross-platform, Go-powered re-imagining of Codename Goose & Codex CLI**
