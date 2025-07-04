@@ -50,6 +50,13 @@ func RunREPL(sess *Session) error {
 			continue
 		}
 
+		// Handle built-in help command
+		if line == "help" || line == "?" {
+			printHelp(os.Stdout)
+			fmt.Print(prompt(sess.Cwd()))
+			continue
+		}
+
 		// Execute external command
 		output, err := sess.RunCommand(line)
 		if err != nil {
@@ -93,4 +100,15 @@ func isExit(line string) bool {
 		}
 	}
 	return false
+}
+
+// printHelp prints the built-in help message to the given writer
+func printHelp(w io.Writer) {
+	help := `Built-in commands:
+  cd <dir>    – Change directory
+  exit        – Exit the shell
+  help, ?     – Show this help message
+
+All other input is executed as shell commands in your shell environment.`
+	fmt.Fprintln(w, help)
 }
