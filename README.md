@@ -49,7 +49,7 @@ golangci-lint run    # optional – static analysis
 
 ## 🧪 Continuous Integration (CI)
 
-All tests are automatically run on every push and pull request via GitHub Actions. The CI workflow uses Go 1.20+ and runs `go test -v ./...` to ensure all tests pass in a clean environment.
+All tests are automatically run on every push and pull request via GitHub Actions. The CI workflow uses Go 1.24+ and runs `go test -v ./...` to ensure all tests pass in a clean environment.
 
 To run the same tests locally:
 
