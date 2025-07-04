@@ -83,22 +83,23 @@ func TestSession_NewSession(t *testing.T) {
 }
 
 func TestRunREPL_MockExecutor(t *testing.T) {
-	// Test with mock executor for controlled testing
-	mock := executor.NewMockExecutor()
-	mock.SetResponse("echo hi", "hi\n", nil)
-	mock.SetResponse("failing-cmd", "", errors.New("command failed"))
+	// Test with testify/mock executor for controlled testing
+	mock := &executor.MockExecutorTestify{}
+	mock.On("RunCommand", "echo hi").Return("hi\n", nil)
+	mock.On("RunCommand", "failing-cmd").Return("", errors.New("command failed"))
 
 	sess := &Session{Executor: mock}
 
 	// Test that the session can use the mock executor
 	output, err := sess.Executor.RunCommand("echo hi")
 	require.NoError(t, err, "Expected no error")
-
 	assert.Equal(t, "hi", strings.TrimSpace(output), "Expected 'hi'")
 
 	// Test error case
 	_, err = sess.Executor.RunCommand("failing-cmd")
 	assert.Error(t, err, "Expected error for failing command")
+
+	mock.AssertExpectations(t)
 }
 
 func TestRunREPL_BlankLinePrompt(t *testing.T) {
