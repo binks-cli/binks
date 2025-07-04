@@ -3,10 +3,10 @@
 **A cross-platform, Go-powered re-imagining of Codename Goose & Codex CLI**
 
 > **Project status – Pre-alpha.**\
-> We are currently implementing **Stage 1 (command execution)** of the publicly-shared [implementation plan](docs/IMPLEMENTATION_PLAN.md). Expect breaking changes until we hit v0.1.0.
+> We are currently implementing the base architecture. Expect breaking changes.
 
 Binks CLI lets you work inside a richer, single‑screen terminal UI that wraps **your existing shell** (bash, zsh, fish) across Linux, macOS, and Windows.\
-It starts life as a **fast, self-contained shell wrapper** and will grow into a fully-featured AI agent with Model-Context-Protocol (MCP) extensions once OpenAI/Anthropic access is approved.
+It starts life as a **fast, self-contained shell wrapper** and will grow into a fully-featured AI agent with Model-Context-Protocol (MCP) extensions.
 
 ---
 
@@ -36,7 +36,7 @@ binks:~/project >
 ## 🛠 Building & testing
 
 ```bash
-go test ./...        # unit & integration tests (TDD is enforced)
+go test ./...        # unit & integration tests 
 go vet  ./...
 golangci-lint run    # optional – static analysis
 ```
@@ -88,7 +88,7 @@ golangci-lint run    # optional – static analysis
 | 6     | LLM assistant (approval workflow, OpenAI chat)            | v0.5.0-beta |
 | 7     | MCP extension bus, file-IO / git tools, multi-model agent | v1.0.0      |
 
-> Detailed tasks live in the [GitHub Projects board](https://github.com/goose-cli/goose/projects).
+> Detailed tasks live in the [GitHub Projects board](https://github.com/binks-cli/binks/projects).
 
 ---
 
