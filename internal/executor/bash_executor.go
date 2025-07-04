@@ -2,7 +2,6 @@ package executor
 
 import (
 	"os/exec"
-	"strings"
 )
 
 // BashExecutor implements the Executor interface using bash shell
@@ -20,7 +19,7 @@ func (e *BashExecutor) RunCommandWithDir(cmd string, dir string) (string, error)
 		execCmd.Dir = dir
 	}
 	output, err := execCmd.CombinedOutput()
-	return strings.TrimRight(string(output), "\n"), err
+	return string(output), err // Preserve shell output including trailing newlines
 }
 
 // RunCommand executes a command using bash and returns the combined output

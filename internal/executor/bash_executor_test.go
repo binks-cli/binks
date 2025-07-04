@@ -40,7 +40,7 @@ func TestBashExecutor_RunCommand_TableDriven(t *testing.T) {
 		{
 			name:    "with arguments",
 			command: "echo 'hello world' | wc -w",
-			expect:  "2",
+			expect:  "       2\n",
 		},
 		{
 			name:    "empty command",
@@ -72,7 +72,7 @@ func TestBashExecutor_RunCommand_TableDriven(t *testing.T) {
 			if tc.outputCheck != nil {
 				tc.outputCheck(t, output)
 			} else if tc.expect != "" {
-				assert.Equal(t, tc.expect, strings.TrimSpace(output), "Expected '%s'", tc.expect)
+				assert.Equal(t, tc.expect, output, "Expected '%s'", tc.expect)
 			} else {
 				assert.Equal(t, tc.expect, output, "Expected '%s'", tc.expect)
 			}
