@@ -12,31 +12,31 @@ import (
 func TestRunREPL_Integration(t *testing.T) {
 	// Test the REPL through the main binary as per acceptance criteria
 	// This simulates: echo test\nexit\n input and checks output order
-	
+
 	binPath := "../binks"
-	
+
 	// Build the binary if it doesn't exist
 	buildCmd := exec.Command("go", "build", "-o", binPath, "../cmd/binks")
 	if err := buildCmd.Run(); err != nil {
 		t.Fatalf("Failed to build binary: %v", err)
 	}
-	
+
 	// Test the acceptance criteria: echo test\nexit\n
 	cmd := exec.Command(binPath)
 	cmd.Stdin = strings.NewReader("echo test\nexit\n")
 	output, err := cmd.CombinedOutput()
-	
+
 	if err != nil {
 		t.Fatalf("Expected no error from REPL, got: %v", err)
 	}
-	
+
 	outputStr := string(output)
-	
+
 	// Check that we have prompts and output
 	if !strings.Contains(outputStr, "binks>") {
 		t.Errorf("Expected prompt in output, got: %s", outputStr)
 	}
-	
+
 	// Should contain "test" output
 	if !strings.Contains(outputStr, "test") {
 		t.Errorf("Expected 'test' output, got: %s", outputStr)
@@ -56,7 +56,7 @@ func TestIsExitCommand(t *testing.T) {
 		{"", false},
 		{"help", false},
 	}
-	
+
 	for _, tc := range testCases {
 		result := isExitCommand(tc.cmd)
 		if result != tc.expected {
@@ -70,7 +70,7 @@ func TestSession_NewSession(t *testing.T) {
 	if sess == nil {
 		t.Error("NewSession() returned nil")
 	}
-	
+
 	if sess.Executor == nil {
 		t.Error("NewSession() created session with nil executor")
 	}
@@ -81,22 +81,50 @@ func TestRunREPL_MockExecutor(t *testing.T) {
 	mock := executor.NewMockExecutor()
 	mock.SetResponse("echo hi", "hi\n", nil)
 	mock.SetResponse("failing-cmd", "", errors.New("command failed"))
-	
+
 	sess := &Session{Executor: mock}
-	
+
 	// Test that the session can use the mock executor
 	output, err := sess.Executor.RunCommand("echo hi")
 	if err != nil {
 		t.Fatalf("Expected no error, got: %v", err)
 	}
-	
+
 	if strings.TrimSpace(output) != "hi" {
 		t.Errorf("Expected 'hi', got '%s'", strings.TrimSpace(output))
 	}
-	
+
 	// Test error case
 	_, err = sess.Executor.RunCommand("failing-cmd")
 	if err == nil {
 		t.Error("Expected error for failing command")
+	}
+}
+
+func TestRunREPL_BlankLinePrompt(t *testing.T) {
+	// Build the binary if it doesn't exist
+	binPath := "../binks"
+	buildCmd := exec.Command("go", "build", "-o", binPath, "../cmd/binks")
+	_ = buildCmd.Run() // Ignore error if already built
+
+	// Simulate pressing Enter (blank line), then exit
+	cmd := exec.Command(binPath)
+	cmd.Stdin = strings.NewReader("\nexit\n")
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		t.Fatalf("Expected no error from REPL, got: %v", err)
+	}
+	outputStr := string(output)
+
+	// Should see two prompts and nothing between them
+	prompts := strings.Count(outputStr, "binks>")
+	if prompts < 2 {
+		t.Errorf("Expected at least two prompts for blank line, got: %s", outputStr)
+	}
+
+	// Should not see any output between the two prompts
+	parts := strings.Split(outputStr, "binks>")
+	if len(parts) >= 3 && strings.TrimSpace(parts[1]) != "" {
+		t.Errorf("Expected no output between prompts for blank line, got: %q", parts[1])
 	}
 }
