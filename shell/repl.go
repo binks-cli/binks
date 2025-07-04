@@ -25,7 +25,7 @@ func RunREPL(sess *Session) error {
 		}
 
 		// Handle built-in exit commands
-		if isExitCommand(line) {
+		if isExit(line) {
 			break
 		}
 
@@ -33,15 +33,15 @@ func RunREPL(sess *Session) error {
 		output, err := sess.Executor.RunCommand(line)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
-		} else {
-			// Print output without adding extra newlines
+		} else if output != "" {
+			// Print output only if there is output
 			fmt.Print(output)
+			// Add newline only if output doesn't end with one
+			if !strings.HasSuffix(output, "\n") {
+				fmt.Print("\n")
+			}
 		}
 
-		// Only print prompt if output does not end with a newline
-		if !strings.HasSuffix(output, "\n") {
-			fmt.Print("\n")
-		}
 		fmt.Print(prompt(""))
 	}
 
@@ -57,9 +57,11 @@ func RunREPL(sess *Session) error {
 	return nil
 }
 
-// isExitCommand checks if the command is a built-in exit command
-func isExitCommand(cmd string) bool {
-	exitAliases := []string{"exit", "quit", "bye"}
+// isExit checks if the command is a built-in exit command (case-insensitive)
+func isExit(line string) bool {
+	// Convert to lowercase for case-insensitive matching
+	cmd := strings.ToLower(strings.TrimSpace(line))
+	exitAliases := []string{"exit", "quit", ":q"}
 	for _, alias := range exitAliases {
 		if cmd == alias {
 			return true

@@ -43,24 +43,42 @@ func TestRunREPL_Integration(t *testing.T) {
 	}
 }
 
-func TestIsExitCommand(t *testing.T) {
+func TestIsExit(t *testing.T) {
 	testCases := []struct {
 		cmd      string
 		expected bool
 	}{
+		// Basic cases
 		{"exit", true},
 		{"quit", true},
-		{"bye", true},
-		{"EXIT", false}, // case sensitive
+		{":q", true},
+		
+		// Case-insensitive matching
+		{"EXIT", true},
+		{"QUIT", true},
+		{"Exit", true},
+		{"Quit", true},
+		{":Q", true},
+		
+		// With whitespace
+		{"  exit  ", true},
+		{"  quit  ", true},
+		{"  :q  ", true},
+		
+		// Non-exit commands
 		{"echo exit", false},
 		{"", false},
 		{"help", false},
+		{"bye", false}, // removed from exit aliases
+		{"exitnow", false},
+		{"quitter", false},
+		{":qa", false},
 	}
 
 	for _, tc := range testCases {
-		result := isExitCommand(tc.cmd)
+		result := isExit(tc.cmd)
 		if result != tc.expected {
-			t.Errorf("isExitCommand(%q) = %v, expected %v", tc.cmd, result, tc.expected)
+			t.Errorf("isExit(%q) = %v, expected %v", tc.cmd, result, tc.expected)
 		}
 	}
 }
@@ -126,5 +144,84 @@ func TestRunREPL_BlankLinePrompt(t *testing.T) {
 	parts := strings.Split(outputStr, "binks>")
 	if len(parts) >= 3 && strings.TrimSpace(parts[1]) != "" {
 		t.Errorf("Expected no output between prompts for blank line, got: %q", parts[1])
+	}
+}
+
+func TestRunREPL_ExitHandling(t *testing.T) {
+	// Test all exit commands with the main binary
+	binPath := "../binks"
+	
+	// Build the binary if it doesn't exist
+	buildCmd := exec.Command("go", "build", "-o", binPath, "../cmd/binks")
+	if err := buildCmd.Run(); err != nil {
+		t.Fatalf("Failed to build binary: %v", err)
+	}
+
+	testCases := []struct {
+		name  string
+		input string
+	}{
+		{"exit command", "exit\n"},
+		{"quit command", "quit\n"},
+		{"vim-style quit", ":q\n"},
+		{"case insensitive EXIT", "EXIT\n"},
+		{"case insensitive QUIT", "QUIT\n"},
+		{"case insensitive :Q", ":Q\n"},
+		{"exit with whitespace", "  exit  \n"},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			cmd := exec.Command(binPath)
+			cmd.Stdin = strings.NewReader(tc.input)
+			output, err := cmd.CombinedOutput()
+
+			// Process should exit cleanly with status 0
+			if err != nil {
+				t.Fatalf("Expected clean exit for %s, got error: %v", tc.name, err)
+			}
+
+			outputStr := string(output)
+			
+			// Should have at least one prompt
+			if !strings.Contains(outputStr, "binks>") {
+				t.Errorf("Expected prompt in output for %s, got: %s", tc.name, outputStr)
+			}
+		})
+	}
+}
+
+func TestRunREPL_EOFHandling(t *testing.T) {
+	// Test EOF handling (Ctrl-D)
+	binPath := "../binks"
+	
+	// Build the binary if it doesn't exist
+	buildCmd := exec.Command("go", "build", "-o", binPath, "../cmd/binks")
+	if err := buildCmd.Run(); err != nil {
+		t.Fatalf("Failed to build binary: %v", err)
+	}
+
+	// Create a command and close stdin immediately to simulate EOF
+	cmd := exec.Command(binPath)
+	
+	// Create a pipe and close it immediately to simulate Ctrl-D (EOF)
+	stdin, err := cmd.StdinPipe()
+	if err != nil {
+		t.Fatalf("Failed to create stdin pipe: %v", err)
+	}
+	
+	// Start the command
+	err = cmd.Start()
+	if err != nil {
+		t.Fatalf("Failed to start command: %v", err)
+	}
+	
+	// Close stdin to send EOF
+	stdin.Close()
+	
+	// Wait for the command to finish
+	err = cmd.Wait()
+	if err != nil {
+		t.Fatalf("Expected clean exit on EOF, got error: %v", err)
 	}
 }
