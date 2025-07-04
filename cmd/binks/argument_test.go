@@ -9,29 +9,23 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestMainCLI_ArgumentHandling(t *testing.T) {
-	// Test with arguments that contain spaces
-	cmd := exec.Command("../../binks", "echo", "hello world")
-	output, err := cmd.CombinedOutput()
+func TestMainCLI_ArgumentHandling_TableDriven(t *testing.T) {
+	testCases := []struct {
+		name     string
+		arg      string
+		expected string
+	}{
+		{"spaces", "hello world", "hello world"},
+		{"commas", "hello, world", "hello, world"},
+		{"special chars", "hello@world#test", "hello@world#test"},
+	}
 
-	require.NoError(t, err, "Expected no error")
-	assert.Equal(t, "hello world", strings.TrimSpace(string(output)), "Expected 'hello world'")
-}
-
-func TestMainCLI_ArgumentsWithCommas(t *testing.T) {
-	// Test with arguments that contain commas
-	cmd := exec.Command("../../binks", "echo", "hello, world")
-	output, err := cmd.CombinedOutput()
-
-	require.NoError(t, err, "Expected no error")
-	assert.Equal(t, "hello, world", strings.TrimSpace(string(output)), "Expected 'hello, world'")
-}
-
-func TestMainCLI_ArgumentsWithSpecialChars(t *testing.T) {
-	// Test with arguments that contain special characters (but not history expansion)
-	cmd := exec.Command("../../binks", "echo", "hello@world#test")
-	output, err := cmd.CombinedOutput()
-
-	require.NoError(t, err, "Expected no error")
-	assert.Equal(t, "hello@world#test", strings.TrimSpace(string(output)), "Expected 'hello@world#test'")
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			cmd := exec.Command("../../binks", "echo", tc.arg)
+			output, err := cmd.CombinedOutput()
+			require.NoError(t, err, "Expected no error")
+			assert.Equal(t, tc.expected, strings.TrimSpace(string(output)), "Expected '%s'", tc.expected)
+		})
+	}
 }

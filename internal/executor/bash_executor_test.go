@@ -10,23 +10,74 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestBashExecutor_RunCommand_SimpleEcho(t *testing.T) {
+func TestBashExecutor_RunCommand_TableDriven(t *testing.T) {
 	executor := NewBashExecutor()
+	testCases := []struct {
+		name        string
+		command     string
+		expect      string
+		expectError bool
+		outputCheck func(t *testing.T, output string)
+		errCheck    func(t *testing.T, err error)
+	}{
+		{
+			name:    "simple echo",
+			command: "echo hello",
+			expect:  "hello\n",
+		},
+		{
+			name:        "non-existent command",
+			command:     "nonexistentcommand12345",
+			expectError: true,
+			outputCheck: func(t *testing.T, output string) {
+				assert.True(t, strings.Contains(output, "not found") || strings.Contains(output, "command not found"), "Expected output to contain 'not found' or 'command not found'")
+			},
+			errCheck: func(t *testing.T, err error) {
+				assert.Error(t, err, "Expected error for non-existent command")
+				assert.Contains(t, err.Error(), "exit status", "Expected error message to contain 'exit status'")
+			},
+		},
+		{
+			name:    "with arguments",
+			command: "echo 'hello world' | wc -w",
+			expect:  "2",
+		},
+		{
+			name:    "empty command",
+			command: "",
+			expect:  "",
+		},
+		{
+			name:    "shell features (env expansion)",
+			command: "echo $HOME",
+			outputCheck: func(t *testing.T, output string) {
+				assert.NotEqual(t, "$HOME", output, "Expected shell variable expansion, but got literal '$HOME'")
+				assert.NotEqual(t, "", output, "Expected non-empty output for $HOME expansion")
+			},
+		},
+	}
 
-	output, err := executor.RunCommand("echo hello")
-
-	require.NoError(t, err, "Expected no error")
-	assert.Equal(t, "hello\n", output, "Expected 'hello\\n'")
-}
-
-func TestBashExecutor_RunCommand_NonExistentCommand(t *testing.T) {
-	executor := NewBashExecutor()
-
-	output, err := executor.RunCommand("nonexistentcommand12345")
-
-	assert.Error(t, err, "Expected error for non-existent command")
-	assert.Contains(t, err.Error(), "exit status", "Expected error message to contain 'exit status'")
-	assert.True(t, strings.Contains(output, "not found") || strings.Contains(output, "command not found"), "Expected output to contain 'not found' or 'command not found'")
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			output, err := executor.RunCommand(tc.command)
+			if tc.expectError {
+				if tc.errCheck != nil {
+					tc.errCheck(t, err)
+				} else {
+					assert.Error(t, err)
+				}
+			} else {
+				require.NoError(t, err, "Expected no error")
+			}
+			if tc.outputCheck != nil {
+				tc.outputCheck(t, output)
+			} else if tc.expect != "" {
+				assert.Equal(t, tc.expect, strings.TrimSpace(output), "Expected '%s'", tc.expect)
+			} else {
+				assert.Equal(t, tc.expect, output, "Expected '%s'", tc.expect)
+			}
+		})
+	}
 }
 
 func TestBashExecutor_RunCommand_MultiLineOutput(t *testing.T) {
@@ -55,34 +106,4 @@ func TestBashExecutor_RunCommand_MultiLineOutput(t *testing.T) {
 	// Check that output contains multiple lines (newlines)
 	lines := strings.Split(output, "\n")
 	assert.GreaterOrEqual(t, len(lines), 3, "Expected at least 3 lines of output")
-}
-
-func TestBashExecutor_RunCommand_WithArguments(t *testing.T) {
-	executor := NewBashExecutor()
-
-	output, err := executor.RunCommand("echo 'hello world' | wc -w")
-
-	require.NoError(t, err, "Expected no error")
-	assert.Equal(t, "2", strings.TrimSpace(output), "Expected '2'")
-}
-
-func TestBashExecutor_RunCommand_EmptyCommand(t *testing.T) {
-	executor := NewBashExecutor()
-
-	output, err := executor.RunCommand("")
-
-	require.NoError(t, err, "Expected no error for empty command")
-	assert.Equal(t, "", output, "Expected empty output")
-}
-
-func TestBashExecutor_RunCommand_ShellFeatures(t *testing.T) {
-	executor := NewBashExecutor()
-
-	// Test that shell features like wildcards work
-	// Use a command that relies on shell expansion
-	output, err := executor.RunCommand("echo $HOME")
-
-	require.NoError(t, err, "Expected no error")
-	assert.NotEqual(t, "$HOME", output, "Expected shell variable expansion, but got literal '$HOME'")
-	assert.NotEqual(t, "", output, "Expected non-empty output for $HOME expansion")
 }
