@@ -32,7 +32,11 @@ func RunREPL(sess *Session) error {
 		// Execute external command
 		output, err := sess.Executor.RunCommand(line)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+			errMsg := fmt.Sprintf("Error: %v", err)
+			fmt.Fprint(os.Stderr, errMsg)
+			if !strings.HasSuffix(errMsg, "\n") {
+				fmt.Fprint(os.Stderr, "\n")
+			}
 		} else if output != "" {
 			// Print output only if there is output
 			fmt.Print(output)
