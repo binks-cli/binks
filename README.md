@@ -129,5 +129,3 @@ Released under **MIT**. See [`LICENSE`](LICENSE).
 > “Binks” references the spirit of those projects; this is an independent re-implementation in Go.
 
 ---
-
-### ⭐ If Binks CLI makes your day smoother, star the repo and share some love!
