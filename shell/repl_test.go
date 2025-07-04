@@ -52,19 +52,19 @@ func TestIsExit(t *testing.T) {
 		{"exit", true},
 		{"quit", true},
 		{":q", true},
-		
+
 		// Case-insensitive matching
 		{"EXIT", true},
 		{"QUIT", true},
 		{"Exit", true},
 		{"Quit", true},
 		{":Q", true},
-		
+
 		// With whitespace
 		{"  exit  ", true},
 		{"  quit  ", true},
 		{"  :q  ", true},
-		
+
 		// Non-exit commands
 		{"echo exit", false},
 		{"", false},
@@ -87,9 +87,7 @@ func TestSession_NewSession(t *testing.T) {
 	sess := NewSession()
 	if sess == nil {
 		t.Error("NewSession() returned nil")
-	}
-
-	if sess.Executor == nil {
+	} else if sess.Executor == nil {
 		t.Error("NewSession() created session with nil executor")
 	}
 }
@@ -150,7 +148,7 @@ func TestRunREPL_BlankLinePrompt(t *testing.T) {
 func TestRunREPL_ExitHandling(t *testing.T) {
 	// Test all exit commands with the main binary
 	binPath := "../binks"
-	
+
 	// Build the binary if it doesn't exist
 	buildCmd := exec.Command("go", "build", "-o", binPath, "../cmd/binks")
 	if err := buildCmd.Run(); err != nil {
@@ -182,7 +180,7 @@ func TestRunREPL_ExitHandling(t *testing.T) {
 			}
 
 			outputStr := string(output)
-			
+
 			// Should have at least one prompt
 			if !strings.Contains(outputStr, "binks>") {
 				t.Errorf("Expected prompt in output for %s, got: %s", tc.name, outputStr)
@@ -194,7 +192,7 @@ func TestRunREPL_ExitHandling(t *testing.T) {
 func TestRunREPL_EOFHandling(t *testing.T) {
 	// Test EOF handling (Ctrl-D)
 	binPath := "../binks"
-	
+
 	// Build the binary if it doesn't exist
 	buildCmd := exec.Command("go", "build", "-o", binPath, "../cmd/binks")
 	if err := buildCmd.Run(); err != nil {
@@ -203,22 +201,22 @@ func TestRunREPL_EOFHandling(t *testing.T) {
 
 	// Create a command and close stdin immediately to simulate EOF
 	cmd := exec.Command(binPath)
-	
+
 	// Create a pipe and close it immediately to simulate Ctrl-D (EOF)
 	stdin, err := cmd.StdinPipe()
 	if err != nil {
 		t.Fatalf("Failed to create stdin pipe: %v", err)
 	}
-	
+
 	// Start the command
 	err = cmd.Start()
 	if err != nil {
 		t.Fatalf("Failed to start command: %v", err)
 	}
-	
+
 	// Close stdin to send EOF
 	stdin.Close()
-	
+
 	// Wait for the command to finish
 	err = cmd.Wait()
 	if err != nil {
