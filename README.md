@@ -129,3 +129,12 @@ Released under **MIT**. See [`LICENSE`](LICENSE).
 > “Binks” references the spirit of those projects; this is an independent re-implementation in Go.
 
 ---
+
+## 🖥️ Non-Blocking GUI/Background Commands
+
+When you launch a known GUI application or background process (e.g., `idea .`, `code .`, `chrome`, or `open` on macOS), Binks will start the process asynchronously and immediately return control to the prompt. You'll see a message like `[launched idea]` to confirm the launch. This prevents the shell from hanging while the app runs.
+
+Other commands (including long-running ones like `sleep 10`) will block the prompt as usual. Support for explicit backgrounding with `&` is not yet implemented.
+
+- If you run a command not in the known list, it will run synchronously by default.
+- If you encounter a case where a GUI app blocks the prompt, please open an issue with details.

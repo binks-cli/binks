@@ -111,3 +111,24 @@ func TestBashExecutor_RunCommand_MultiLineOutput(t *testing.T) {
 	lines := strings.Split(output, "\n")
 	assert.GreaterOrEqual(t, len(lines), 3, "Expected at least 3 lines of output")
 }
+
+func TestIsAsyncCommand(t *testing.T) {
+	tests := []struct {
+		cmd      string
+		expected bool
+	}{
+		{"idea .", true},
+		{"code .", true},
+		{"chrome", true},
+		{"open /Applications/Calculator.app", true},
+		{"echo hello", false},
+		{"sleep 1", false},
+		{"", false},
+	}
+	for _, tt := range tests {
+		_, got := isAsyncCommand(tt.cmd)
+		if got != tt.expected {
+			t.Errorf("isAsyncCommand(%q) = %v, want %v", tt.cmd, got, tt.expected)
+		}
+	}
+}
