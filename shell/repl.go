@@ -6,30 +6,101 @@ import (
 	"io"
 	"os"
 	"strings"
+
+	"github.com/chzyer/readline"
+	"github.com/mattn/go-isatty"
 )
 
 // RunREPL starts an interactive read-eval-print loop
 func RunREPL(sess *Session) error {
+	if isatty.IsTerminal(os.Stdin.Fd()) {
+		// Use readline for interactive TTY
+		config := &readline.Config{
+			Prompt:          prompt(sess.Cwd()),
+			HistoryLimit:    100,
+			InterruptPrompt: "^C\n",
+			EOFPrompt:       "exit\n",
+			Stdin:           os.Stdin,
+			Stdout:          os.Stdout,
+		}
+		rl, err := readline.NewEx(config)
+		if err != nil {
+			return err
+		}
+		defer rl.Close()
+		for {
+			line, err := rl.Readline()
+			if err == readline.ErrInterrupt {
+				if len(line) == 0 {
+					break // exit on double Ctrl+C
+				}
+				continue
+			} else if err == io.EOF {
+				break // exit on Ctrl+D
+			}
+			line = strings.TrimSpace(line)
+			if line == "" {
+				rl.SetPrompt(prompt(sess.Cwd()))
+				continue
+			}
+			if isExit(line) {
+				break
+			}
+			if strings.HasPrefix(line, "cd") {
+				fields := strings.Fields(line)
+				var cdArg string
+				if len(fields) > 1 {
+					cdArg = strings.Join(fields[1:], " ")
+				} else {
+					cdArg = ""
+				}
+				err := sess.ChangeDir(strings.TrimSpace(cdArg))
+				if err != nil {
+					errMsg := fmt.Sprintf("Error: %v", err)
+					fmt.Fprint(os.Stderr, errMsg)
+					if !strings.HasSuffix(errMsg, "\n") {
+						fmt.Fprint(os.Stderr, "\n")
+					}
+				}
+				rl.SetPrompt(prompt(sess.Cwd()))
+				continue
+			}
+			if line == "help" || line == "?" {
+				printHelp(os.Stdout)
+				rl.SetPrompt(prompt(sess.Cwd()))
+				continue
+			}
+			output, err := sess.RunCommand(line)
+			if err != nil {
+				errMsg := fmt.Sprintf("Error: %v", err)
+				fmt.Fprint(os.Stderr, errMsg)
+				if !strings.HasSuffix(errMsg, "\n") {
+					fmt.Fprint(os.Stderr, "\n")
+				}
+			} else if output != "" {
+				fmt.Print(output)
+				if !strings.HasSuffix(output, "\n") {
+					fmt.Print("\n")
+				}
+			}
+			rl.SetPrompt(prompt(sess.Cwd()))
+		}
+		return nil
+	}
+	// Non-TTY: fallback to bufio.Scanner for integration tests and piping
 	scanner := bufio.NewScanner(os.Stdin)
-
-	// Print the prompt before the first input
 	fmt.Print(prompt(sess.Cwd()))
-
+	os.Stdout.Sync()
 	for scanner.Scan() {
 		line := strings.TrimSpace(scanner.Text())
-
-		// Skip empty lines
 		if line == "" {
 			fmt.Print(prompt(sess.Cwd()))
+			os.Stdout.Sync()
 			continue
 		}
-
-		// Handle built-in exit commands
 		if isExit(line) {
 			break
 		}
-
-		// Handle built-in cd command
 		if strings.HasPrefix(line, "cd") {
 			fields := strings.Fields(line)
 			var cdArg string
@@ -47,17 +118,15 @@ func RunREPL(sess *Session) error {
 				}
 			}
 			fmt.Print(prompt(sess.Cwd()))
+			os.Stdout.Sync()
 			continue
 		}
-
-		// Handle built-in help command
 		if line == "help" || line == "?" {
 			printHelp(os.Stdout)
 			fmt.Print(prompt(sess.Cwd()))
+			os.Stdout.Sync()
 			continue
 		}
-
-		// Execute external command
 		output, err := sess.RunCommand(line)
 		if err != nil {
 			errMsg := fmt.Sprintf("Error: %v", err)
@@ -66,26 +135,20 @@ func RunREPL(sess *Session) error {
 				fmt.Fprint(os.Stderr, "\n")
 			}
 		} else if output != "" {
-			// Print output only if there is output
 			fmt.Print(output)
-			// Add newline only if output doesn't end with one
 			if !strings.HasSuffix(output, "\n") {
 				fmt.Print("\n")
 			}
 		}
-
 		fmt.Print(prompt(sess.Cwd()))
+		os.Stdout.Sync()
 	}
-
-	// Check for scanner errors
 	if err := scanner.Err(); err != nil {
-		// Don't treat EOF as an error - it's expected when user presses Ctrl-D
 		if err == io.EOF {
 			return nil
 		}
 		return err
 	}
-
 	return nil
 }
 
