@@ -4,8 +4,8 @@
 
 **A cross-platform, Go-powered re-imagining of Codename Goose & Codex CLI**
 
-> **Project status – Pre-alpha.**\
-> We are currently implementing the base architecture. Expect breaking changes.
+> **Project status – Alpha.**\
+> The base architecture is implemented and stable. Expect some breaking changes as new features are added.
 
 Binks CLI lets you work inside a richer, single‑screen terminal UI that wraps **your existing shell** (bash, zsh, fish) across Linux, macOS, and Windows.\
 It starts life as a **fast, self-contained shell wrapper** and will grow into a fully-featured AI agent with Model-Context-Protocol (MCP) extensions.
@@ -40,10 +40,11 @@ binks:~/project >
 ```bash
 go test ./...        # unit & integration tests 
 go vet  ./...
-golangci-lint run    # optional – static analysis
+# Optional: static analysis (if installed)
+golangci-lint run    
 ```
 
-*Requires ****Go 1.22+**** and **``** in **``** (WSL / Git-Bash works on Windows).*
+*Requires **Go 1.24+** and a POSIX-compatible shell (WSL / Git-Bash works on Windows).*
 
 ---
 
@@ -71,18 +72,18 @@ If you add new tests, make sure they do not require manual input or special loca
    ┌───────▼────────┐  readline / promptui
    │  REPL  (Stage2)│──────────────────────────────────────┐
    └───────┬────────┘                                      │
-   built-ins│external                                      │
-┌───────────▼───────────┐            ┌─────────────────────▼──────────────────┐
-│   cd / exit / help    │            │  executor.RunCmd (Stage1–3)            │
-│   (session mutators)  │            │  - capture  (tests)                    │
-│                       │            │  - attach   (interactive programs)     │
+  built-ins│external                                       │
+┌───────────▼───────────┐            ┌─────────────────────▼──────────────────-┐
+│   cd / exit / help    │            │  executor.RunCmd (Stage1–3)             │
+│   (session mutators)  │            │  - capture  (tests)                     │
+│                       │            │  - attach   (interactive programs)      │
 └───────────────────────┘            └─────────────────────────────────────────┘
                                          ▲
                                          │ later
                                          │
-                                         │   ┌────────────── extension: shell / fs / git … ┐
+                                         │   ┌────────────── extension: shell / fs / git --┐
                                          └──▶│  AI Agent + MCP tool bus  (Stage6–7)        │
-                                             └──────────────────────────────────────────────┘
+                                             └─────────────────────────────────────────────┘
 ```
 
 - **Single static Go binary** – no Node/Rust runtime.
