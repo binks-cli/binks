@@ -2,6 +2,7 @@ package shell
 
 import (
 	"errors"
+	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -322,12 +323,14 @@ func TestProcessREPLLine_BuiltinsAndExternal(t *testing.T) {
 	assert.Equal(t, "", errOut.String())
 
 	// Test exit command
-	out.Reset(); errOut.Reset()
+	out.Reset()
+	errOut.Reset()
 	exit = processREPLLine("exit", sess, &out, &errOut)
 	assert.True(t, exit)
 
 	// Test cd to home
-	out.Reset(); errOut.Reset()
+	out.Reset()
+	errOut.Reset()
 	home, _ := os.UserHomeDir()
 	sess.ChangeDir("/tmp") // move away from home
 	exit = processREPLLine("cd", sess, &out, &errOut)
@@ -335,14 +338,16 @@ func TestProcessREPLLine_BuiltinsAndExternal(t *testing.T) {
 	assert.Equal(t, home, sess.Cwd())
 
 	// Test cd to invalid dir
-	out.Reset(); errOut.Reset()
+	out.Reset()
+	errOut.Reset()
 	badDir := "/no/such/dir/shouldexist"
 	exit = processREPLLine("cd "+badDir, sess, &out, &errOut)
 	assert.False(t, exit)
 	assert.Contains(t, errOut.String(), "Error:")
 
 	// Test help
-	out.Reset(); errOut.Reset()
+	out.Reset()
+	errOut.Reset()
 	exit = processREPLLine("help", sess, &out, &errOut)
 	assert.False(t, exit)
 	assert.Contains(t, out.String(), "Built-in commands:")
@@ -351,7 +356,8 @@ func TestProcessREPLLine_BuiltinsAndExternal(t *testing.T) {
 	mock := &executor.MockExecutorTestify{}
 	mock.On("RunCommand", "echo hi").Return("hi\n", nil)
 	sess.Executor = mock
-	out.Reset(); errOut.Reset()
+	out.Reset()
+	errOut.Reset()
 	exit = processREPLLine("echo hi", sess, &out, &errOut)
 	assert.False(t, exit)
 	assert.Contains(t, out.String(), "hi")
@@ -359,8 +365,58 @@ func TestProcessREPLLine_BuiltinsAndExternal(t *testing.T) {
 
 	// Test external command error
 	mock.On("RunCommand", "fail").Return("", errors.New("fail"))
-	out.Reset(); errOut.Reset()
+	out.Reset()
+	errOut.Reset()
 	exit = processREPLLine("fail", sess, &out, &errOut)
 	assert.False(t, exit)
 	assert.Contains(t, errOut.String(), "Error:")
+}
+
+func TestRunREPLNonInteractive_Basic(t *testing.T) {
+	sess := NewSession()
+	input := "echo foo\ncd /\npwd\nexit\n"
+	var out, errOut strings.Builder
+	err := RunREPLNonInteractive(sess, strings.NewReader(input), &out, &errOut)
+	assert.NoError(t, err)
+	output := out.String()
+	// Should contain 'foo' from echo, and '/' from pwd
+	assert.Contains(t, output, "foo")
+	assert.Contains(t, output, "/")
+	// Should not contain error output
+	assert.Empty(t, errOut.String())
+}
+
+// mockLineReader implements LineReader for testing runREPLInteractive
+// It returns lines from the provided slice, then io.EOF
+// SetPrompt and Close are no-ops
+
+type mockLineReader struct {
+	lines  []string
+	idx    int
+	prompts []string
+}
+
+func (m *mockLineReader) Readline() (string, error) {
+	if m.idx >= len(m.lines) {
+		return "", io.EOF
+	}
+	line := m.lines[m.idx]
+	m.idx++
+	return line, nil
+}
+func (m *mockLineReader) SetPrompt(p string) { m.prompts = append(m.prompts, p) }
+func (m *mockLineReader) Close() error      { return nil }
+
+func TestRunREPLInteractive_Basic(t *testing.T) {
+	sess := NewSession()
+	mockRL := &mockLineReader{lines: []string{"echo foo", "cd /", "pwd", "exit"}}
+	var out, errOut strings.Builder
+	err := runREPLInteractive(sess, mockRL, &out, &errOut)
+	assert.NoError(t, err)
+	output := out.String()
+	assert.Contains(t, output, "foo")
+	assert.Contains(t, output, "/")
+	assert.Empty(t, errOut.String())
+	// Prompts should be set at least once
+	assert.NotEmpty(t, mockRL.prompts)
 }

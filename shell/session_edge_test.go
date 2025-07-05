@@ -12,31 +12,31 @@ import (
 )
 
 func TestSession_ChangeDir_EdgeCases(t *testing.T) {
-	sess := NewSession()
-	cwd := sess.Cwd()
+	tmp := t.TempDir()
+	_ = os.Chdir(tmp)
 
 	testCases := []struct {
 		name      string
 		input     string
 		expectErr bool
-		check     func(_ *testing.T, sess *Session, _ error)
+		check     func(_ *testing.T, sess *Session, startCwd string, _ error)
 	}{
-		{"empty string (home)", "", false, func(_ *testing.T, sess *Session, _ error) {
+		{"empty string (home)", "", false, func(_ *testing.T, sess *Session, startCwd string, _ error) {
 			home, _ := os.UserHomeDir()
 			assert.Equal(t, home, sess.Cwd())
 		}},
-		{"~ (home)", "~", false, func(_ *testing.T, sess *Session, _ error) {
+		{"~ (home)", "~", false, func(_ *testing.T, sess *Session, startCwd string, _ error) {
 			home, _ := os.UserHomeDir()
 			assert.Equal(t, home, sess.Cwd())
 		}},
-		{"non-existent dir", "/no/such/dir/shouldexist", true, func(_ *testing.T, sess *Session, err error) {
+		{"non-existent dir", "/no/such/dir/shouldexist", true, func(_ *testing.T, sess *Session, startCwd string, err error) {
 			assert.Error(t, err)
-			assert.Equal(t, cwd, sess.Cwd(), "cwd should not change on error")
+			assert.Equal(t, startCwd, sess.Cwd(), "cwd should not change on error")
 		}},
-		{"relative valid dir", "..", false, func(_ *testing.T, sess *Session, _ error) {
-			assert.NotEqual(t, cwd, sess.Cwd())
+		{"relative valid dir", "..", false, func(_ *testing.T, sess *Session, startCwd string, _ error) {
+			assert.NotEqual(t, startCwd, sess.Cwd())
 		}},
-		{"path with ~ prefix", "~/", false, func(_ *testing.T, sess *Session, _ error) {
+		{"path with ~ prefix", "~/", false, func(_ *testing.T, sess *Session, startCwd string, _ error) {
 			home, _ := os.UserHomeDir()
 			assert.True(t, strings.HasPrefix(sess.Cwd(), home))
 		}},
@@ -44,8 +44,10 @@ func TestSession_ChangeDir_EdgeCases(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
+			sess := NewSession()
+			startCwd := sess.Cwd()
 			err := sess.ChangeDir(tc.input)
-			tc.check(t, sess, err)
+			tc.check(t, sess, startCwd, err)
 		})
 	}
 }

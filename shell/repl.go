@@ -34,14 +34,55 @@ func RunREPL(sess *Session) error {
 		if err != nil {
 			return err
 		}
-		defer func() {
-			if err := rl.Close(); err != nil {
-				fmt.Fprintln(os.Stderr, "failed to close readline:", err)
-			}
-		}()
-		for {
-			line, err := rl.Readline()
-			if err == readline.ErrInterrupt {
+		return runREPLInteractive(sess, rl, os.Stdout, os.Stderr)
+	}
+	// Non-TTY: fallback to bufio.Scanner for integration tests and piping
+	return RunREPLNonInteractive(sess, os.Stdin, os.Stdout, os.Stderr)
+}
+
+// RunREPLNonInteractive runs the REPL in non-interactive mode (for tests and piping).
+// It reads lines from the provided io.Reader and writes output/errors to the given writers.
+func RunREPLNonInteractive(sess *Session, in io.Reader, out, errOut io.Writer) error {
+	scanner := bufio.NewScanner(in)
+	// Print initial prompt
+	fmt.Fprint(out, prompt(sess.Cwd()))
+	if f, ok := out.(interface{ Sync() error }); ok {
+		_ = f.Sync()
+	}
+	for scanner.Scan() {
+		line := scanner.Text()
+		exit := processREPLLine(line, sess, out, errOut)
+		// Print prompt after each command (to match interactive mode)
+		fmt.Fprint(out, prompt(sess.Cwd()))
+		if f, ok := out.(interface{ Sync() error }); ok {
+			_ = f.Sync()
+		}
+		if exit {
+			break
+		}
+	}
+	return scanner.Err()
+}
+
+// LineReader abstracts a line-oriented input for the REPL.
+// It is implemented by *readline.Instance in production, and by mocks in tests.
+type LineReader interface {
+	// Readline reads the next line of input, or returns io.EOF at end.
+	Readline() (string, error)
+	// SetPrompt updates the prompt string.
+	SetPrompt(string)
+	// Close releases any resources held by the reader.
+	Close() error
+}
+
+// runREPLInteractive runs the interactive REPL loop using a LineReader.
+// This enables dependency injection for readline and testability.
+func runREPLInteractive(sess *Session, rl LineReader, out, errOut io.Writer) error {
+	defer rl.Close()
+	for {
+		line, err := rl.Readline()
+		if err != nil {
+			if err.Error() == "Interrupt" { // readline.ErrInterrupt is not exported
 				if len(line) == 0 {
 					break // exit on double Ctrl+C
 				}
@@ -49,58 +90,21 @@ func RunREPL(sess *Session) error {
 			} else if err == io.EOF {
 				break // exit on Ctrl+D
 			}
-			exit := processREPLLine(line, sess, os.Stdout, os.Stderr)
-			if line == "" {
-				rl.SetPrompt(prompt(sess.Cwd()))
-				continue
-			}
-			if strings.HasPrefix(line, "cd") || line == "help" || line == "?" {
-				rl.SetPrompt(formatPrompt(sess.Cwd()))
-				continue
-			}
+			return err
+		}
+		exit := processREPLLine(line, sess, out, errOut)
+		if line == "" {
+			rl.SetPrompt(prompt(sess.Cwd()))
+			continue
+		}
+		if strings.HasPrefix(line, "cd") || line == "help" || line == "?" {
 			rl.SetPrompt(formatPrompt(sess.Cwd()))
-			if exit {
-				break
-			}
-		}
-		return nil
-	}
-	// Non-TTY: fallback to bufio.Scanner for integration tests and piping
-	scanner := bufio.NewScanner(os.Stdin)
-	fmt.Print(prompt(sess.Cwd()))
-	if err := os.Stdout.Sync(); err != nil {
-		fmt.Fprintln(os.Stderr, "failed to sync stdout:", err)
-	}
-	for scanner.Scan() {
-		line := scanner.Text()
-		exit := processREPLLine(line, sess, os.Stdout, os.Stderr)
-		if strings.TrimSpace(line) == "" {
-			fmt.Print(prompt(sess.Cwd()))
-			if err := os.Stdout.Sync(); err != nil {
-				fmt.Fprintln(os.Stderr, "failed to sync stdout:", err)
-			}
 			continue
 		}
-		if strings.HasPrefix(strings.TrimSpace(line), "cd") || strings.TrimSpace(line) == "help" || strings.TrimSpace(line) == "?" {
-			fmt.Print(formatPrompt(sess.Cwd()))
-			if err := os.Stdout.Sync(); err != nil {
-				fmt.Fprintln(os.Stderr, "failed to sync stdout:", err)
-			}
-			continue
-		}
-		fmt.Print(formatPrompt(sess.Cwd()))
-		if err := os.Stdout.Sync(); err != nil {
-			fmt.Fprintln(os.Stderr, "failed to sync stdout:", err)
-		}
+		rl.SetPrompt(formatPrompt(sess.Cwd()))
 		if exit {
 			break
 		}
-	}
-	if err := scanner.Err(); err != nil {
-		if err == io.EOF {
-			return nil
-		}
-		return err
 	}
 	return nil
 }
