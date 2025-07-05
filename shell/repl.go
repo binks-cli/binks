@@ -95,10 +95,6 @@ func runREPLInteractive(sess *Session, rl LineReader, out, errOut io.Writer) err
 			return err
 		}
 		exit := processREPLLine(line, sess, out, errOut)
-		if line == "" {
-			rl.SetPrompt(promptWithAI(sess.Cwd(), sess.AIEnabled))
-			continue
-		}
 		if strings.HasPrefix(line, "cd") || line == "help" || line == "?" {
 			rl.SetPrompt(promptWithAI(sess.Cwd(), sess.AIEnabled))
 			continue
@@ -116,9 +112,6 @@ var aiColor = color.New(color.FgCyan, color.Bold)
 // processREPLLine handles a single REPL input line and returns whether to exit the loop.
 func processREPLLine(line string, sess *Session, out, errOut io.Writer) (exit bool) {
 	line = strings.TrimSpace(line)
-	if line == "" {
-		return false
-	}
 	if isExit(line) {
 		return true
 	}
@@ -140,29 +133,14 @@ func processREPLLine(line string, sess *Session, out, errOut io.Writer) (exit bo
 		printHelp(out)
 		return false
 	}
-	if strings.HasPrefix(line, ":ai ") {
-		cmd := strings.TrimSpace(line[4:])
-		if cmd == "on" {
-			sess.AIEnabled = true
-			fmt.Fprintln(out, "[AI mode enabled]")
-		} else if cmd == "off" {
-			sess.AIEnabled = false
-			fmt.Fprintln(out, "[AI mode disabled]")
-		} else {
-			fmt.Fprintln(out, "Usage: :ai on|off")
-		}
-		return false
-	}
-	// AI query handling
 	if sess.pendingSuggestion != nil {
-		// We are waiting for user confirmation
 		answer := strings.ToLower(strings.TrimSpace(line))
 		if answer == "y" || answer == "yes" {
 			sess.pendingSuggestion.confirmed = true
 			output, err := sess.RunCommand(sess.pendingSuggestion.command)
 			sess.pendingSuggestion = nil
 			if err != nil {
-				aiColor.Fprintf(out, "[AI] error: %s\n", err.Error())
+				aiColor.Fprintf(errOut, "[AI] error: %s\n", err.Error())
 			} else if output != "" {
 				aiColor.Fprintf(out, "%s\n", output)
 			}
@@ -173,6 +151,10 @@ func processREPLLine(line string, sess *Session, out, errOut io.Writer) (exit bo
 		}
 		return false
 	}
+	if line == "" {
+		return false
+	}
+	// Only reach here if no pending suggestion
 	if sess.AIEnabled && sess.Agent != nil {
 		if strings.HasPrefix(line, "!") {
 			// Force shell command
@@ -189,7 +171,8 @@ func processREPLLine(line string, sess *Session, out, errOut io.Writer) (exit bo
 		}
 		resp, err := sess.ExecuteLine(agent.AIPrefix + line)
 		if err != nil {
-			aiColor.Fprintf(out, "[AI] error: %s\n", err.Error())
+			aiColor.Fprintf(errOut, "[AI] error: %s\n", err.Error())
+			sess.pendingSuggestion = nil
 		} else if resp == "[AI]" && sess.pendingSuggestion != nil {
 			// Show explanation and command, prompt for confirmation
 			if sess.pendingSuggestion.explanation != "" {

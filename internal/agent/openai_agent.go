@@ -93,6 +93,9 @@ func (a *OpenAIAgent) Respond(prompt string) (string, error) {
 	req.Header.Set("Content-Type", "application/json")
 	resp, err := a.Client.Do(req)
 	if err != nil {
+		if errors.Is(err, context.DeadlineExceeded) || strings.Contains(err.Error(), "context deadline exceeded") {
+			return "", errors.New("AI request timed out")
+		}
 		return "", errors.New("AI error: " + err.Error())
 	}
 	defer resp.Body.Close()

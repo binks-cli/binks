@@ -11,14 +11,15 @@ import (
 func (s *Session) ExecuteLine(line string) (string, error) {
 	trimmed := strings.TrimSpace(line)
 	if s.pendingSuggestion != nil {
-		if strings.EqualFold(trimmed, "yes") {
+		answer := strings.ToLower(trimmed)
+		if answer == "y" || answer == "yes" {
 			cmd := s.pendingSuggestion.command
 			s.pendingSuggestion = nil
 			resp, err := s.RunCommand(cmd)
 			return resp, err
-		} else if strings.EqualFold(trimmed, "no") {
+		} else {
 			s.pendingSuggestion = nil
-			return "Cancelled", nil
+			return "[AI] Cancelled.", nil
 		}
 	}
 	if agent.IsAIQuery(line) && s.Agent != nil {
@@ -27,6 +28,7 @@ func (s *Session) ExecuteLine(line string) (string, error) {
 		}
 		resp, err := s.Agent.Respond(trimmed)
 		if err != nil {
+			s.pendingSuggestion = nil
 			return "[AI] error: " + err.Error(), err
 		}
 		// Parse AI response for code block (shell command)

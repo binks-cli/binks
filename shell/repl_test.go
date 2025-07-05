@@ -2,6 +2,7 @@ package shell
 
 import (
 	"errors"
+	"fmt"
 	"io"
 	"os"
 	"os/exec"
@@ -525,5 +526,64 @@ func TestAIConfirmationDecline(t *testing.T) {
 
 	processREPLLine("n", sess, &out, &errOut)
 	assert.Contains(t, out.String(), "[AI] Cancelled.")
+	assert.Nil(t, sess.pendingSuggestion)
+}
+
+func TestAIConfirmationInputVariants_REPL(t *testing.T) {
+	sess := NewSession()
+	sess.Executor = &mockExecutor{}
+	sess.Agent = agentFuncMock(func(prompt string) (string, error) {
+		return "Explain\n```sh\necho hi\n```", nil
+	})
+	sess.AIEnabled = true
+	var out, errOut strings.Builder
+
+	// Trigger suggestion
+	processREPLLine(">> suggest", sess, &out, &errOut)
+	assert.Contains(t, out.String(), "AI suggests: echo hi")
+	out.Reset()
+
+	// Accept with 'y'
+	processREPLLine("y", sess, &out, &errOut)
+	assert.Nil(t, sess.pendingSuggestion)
+	out.Reset()
+
+	// Accept with 'yes'
+	processREPLLine(">> suggest", sess, &out, &errOut)
+	processREPLLine("yes", sess, &out, &errOut)
+	assert.Nil(t, sess.pendingSuggestion)
+	out.Reset()
+
+	// Decline with variants
+	for _, input := range []string{"n", "no", "abc", "", "Yess", "YES!"} {
+		sess := NewSession()
+		sess.Executor = &mockExecutor{}
+		sess.Agent = agentFuncMock(func(prompt string) (string, error) {
+			return "Explain\n```sh\necho hi\n```", nil
+		})
+		sess.AIEnabled = true
+		var out, errOut strings.Builder
+		processREPLLine(">> suggest", sess, &out, &errOut)
+		fmt.Printf("[TEST DEBUG] After suggest: pendingSuggestion=%v, out=%q\n", sess.pendingSuggestion, out.String())
+		out.Reset()
+		processREPLLine(input, sess, &out, &errOut)
+		output := out.String()
+		fmt.Printf("[TEST DEBUG] After decline '%s': pendingSuggestion=%v, out=%q\n", input, sess.pendingSuggestion, output)
+		assert.Contains(t, output, "[AI] Cancelled.")
+		assert.Nil(t, sess.pendingSuggestion)
+		out.Reset()
+	}
+}
+
+func TestAIErrorOutput_REPL(t *testing.T) {
+	sess := NewSession()
+	sess.Agent = agentFuncMock(func(prompt string) (string, error) {
+		return "", errors.New("AI request timed out")
+	})
+	sess.AIEnabled = true
+	var out, errOut strings.Builder
+
+	processREPLLine(">> timeout", sess, &out, &errOut)
+	assert.Contains(t, errOut.String(), "AI request timed out")
 	assert.Nil(t, sess.pendingSuggestion)
 }
