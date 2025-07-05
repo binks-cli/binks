@@ -2,14 +2,15 @@ package executor
 
 import (
 	"fmt"
-	"github.com/creack/pty"
-	"golang.org/x/term"
 	"io"
 	"os"
 	"os/exec"
 	"os/signal"
 	"strings"
 	"syscall"
+
+	"github.com/creack/pty"
+	"golang.org/x/term"
 )
 
 // BashExecutor implements the Executor interface using bash shell

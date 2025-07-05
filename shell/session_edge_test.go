@@ -3,6 +3,7 @@ package shell
 import (
 	"errors"
 	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -90,4 +91,55 @@ func TestSession_ChangeDir_NoPanic(t *testing.T) {
 	_ = sess.ChangeDir("")
 	_ = sess.ChangeDir("~")
 	_ = sess.ChangeDir("/no/such/dir/shouldexist")
+}
+
+func TestRunCommand_DoesNotAffectSessionCwd(t *testing.T) {
+	tmp := t.TempDir()
+	sess := NewSession()
+	startCwd := sess.Cwd()
+
+	// Run an external cd command (should not affect session cwd)
+	_, err := sess.RunCommand("cd " + tmp)
+	assert.NoError(t, err)
+	cwdEval, _ := filepath.EvalSymlinks(sess.Cwd())
+	startEval, _ := filepath.EvalSymlinks(startCwd)
+	assert.Equal(t, startEval, cwdEval, "Session cwd should not change after external cd command")
+
+	// Now use built-in cd (should change session cwd)
+	err = sess.ChangeDir(tmp)
+	assert.NoError(t, err)
+	cwdEval, _ = filepath.EvalSymlinks(sess.Cwd())
+	tmpEval, _ := filepath.EvalSymlinks(tmp)
+	assert.Equal(t, tmpEval, cwdEval, "Session cwd should change after built-in cd")
+}
+
+func TestSession_ChangeDir_PlatformSpecific(t *testing.T) {
+	// This test checks platform-specific path handling for cd
+	// On Windows, test drive letter; on Unix, test root
+	if os.PathSeparator == '\\' {
+		// Windows
+		start := NewSession().Cwd()
+		// Try to cd to C:\ (skip if not present)
+		if _, err := os.Stat("C:\\"); err == nil {
+			sess := NewSession()
+			err := sess.ChangeDir("C:\\")
+			assert.NoError(t, err)
+			assert.True(t, strings.HasPrefix(sess.Cwd(), "C:"))
+			// cd .. from root should stay at root
+			err = sess.ChangeDir("..")
+			assert.NoError(t, err)
+			assert.True(t, strings.HasPrefix(sess.Cwd(), "C:"))
+		}
+		_ = start // avoid unused
+	} else {
+		// Unix
+		sess := NewSession()
+		err := sess.ChangeDir("/")
+		assert.NoError(t, err)
+		assert.Equal(t, "/", sess.Cwd())
+		// cd .. from root should stay at root
+		err = sess.ChangeDir("..")
+		assert.NoError(t, err)
+		assert.Equal(t, "/", sess.Cwd())
+	}
 }

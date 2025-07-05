@@ -116,6 +116,20 @@ func TestBashExecutor_RunCommand_MultiLineOutput(t *testing.T) {
 	assert.GreaterOrEqual(t, len(lines), 3, "Expected at least 3 lines of output")
 }
 
+func TestBashExecutor_RunCommand_AsyncBackground(t *testing.T) {
+	executor := NewBashExecutor()
+	// Use a command from AsyncCommands (e.g., 'open' or 'sleep' as a dummy)
+	output, err := executor.RunCommand("open /tmp")
+	// On macOS, 'open' should exist; on Linux/Windows, may not, so allow error but check output
+	if err == nil {
+		assert.Contains(t, output, "[launched open]", "Expected async launch message")
+	}
+	// Also test a non-async command to ensure it does not return async message
+	output, err = executor.RunCommand("echo async-test")
+	assert.NoError(t, err)
+	assert.Equal(t, "async-test\n", output)
+}
+
 func TestIsAsyncCommand(t *testing.T) {
 	tests := []struct {
 		cmd      string
@@ -135,4 +149,28 @@ func TestIsAsyncCommand(t *testing.T) {
 			t.Errorf("isAsyncCommand(%q) = %v, want %v", tt.cmd, got, tt.expected)
 		}
 	}
+}
+
+func TestBashExecutor_RunCommandWithDir_InteractiveAndAsync(t *testing.T) {
+	executor := NewBashExecutor()
+	dir := t.TempDir()
+
+	// Async command (should return launch message)
+	output, err := executor.RunCommandWithDir("open /tmp", dir)
+	if err == nil {
+		assert.Contains(t, output, "[launched open]")
+	}
+
+	// Interactive command (simulate with a non-blocking command)
+	// We can't fully test PTY without a TTY, but we can check for error or empty output
+	output, err = executor.RunCommandWithDir("vim --version", dir)
+	// Accept error or empty output (since PTY may not work in test env)
+	if err != nil {
+		assert.Empty(t, output)
+	}
+
+	// Normal command
+	output, err = executor.RunCommandWithDir("echo hi", dir)
+	assert.NoError(t, err)
+	assert.Equal(t, "hi\n", output)
 }

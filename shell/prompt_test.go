@@ -4,6 +4,8 @@ import (
 	"os"
 	"strings"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestFormatPrompt(t *testing.T) {
@@ -28,4 +30,23 @@ func TestFormatPrompt(t *testing.T) {
 			t.Errorf("prompt %q does not end with reset code and space", prompt)
 		}
 	}
+}
+
+func TestPromptUtilities(t *testing.T) {
+	home, _ := os.UserHomeDir()
+	cwd := home + "/project"
+	colored := formatPrompt(cwd)
+	plain := plainPrompt(cwd)
+	// prompt() returns colored if TTY, plain otherwise; test both
+	assert.Contains(t, colored, "binks:")
+	assert.Contains(t, colored, "~")
+	assert.Contains(t, plain, "binks:")
+	assert.Contains(t, plain, "~")
+	// StripANSI removes color codes
+	stripped := StripANSI(colored)
+	assert.NotContains(t, stripped, "\x1b[")
+	assert.Contains(t, stripped, "binks:")
+	// prompt() returns something non-empty
+	p := prompt(cwd)
+	assert.NotEmpty(t, p)
 }

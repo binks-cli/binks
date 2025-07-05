@@ -253,3 +253,114 @@ func TestHistoryFilePath(t *testing.T) {
 	// Clean up
 	_ = os.Remove(historyFile)
 }
+
+func TestHistoryFile_PersistenceAndEdgeCases(t *testing.T) {
+	tmpDir := t.TempDir()
+	historyFile := filepath.Join(tmpDir, ".binks_history")
+
+	// Write initial history with duplicates and blanks
+	initial := "echo foo\n\necho bar\necho foo\n"
+	assert.NoError(t, os.WriteFile(historyFile, []byte(initial), 0644))
+
+	// Simulate readline loading and appending
+	f, err := os.OpenFile(historyFile, os.O_APPEND|os.O_WRONLY, 0644)
+	assert.NoError(t, err)
+	_, err = f.WriteString("echo baz\n\n")
+	assert.NoError(t, err)
+	assert.NoError(t, f.Close())
+
+	// Read back and check for duplicates and blanks
+	data, err := os.ReadFile(historyFile)
+	assert.NoError(t, err)
+	lines := strings.Split(string(data), "\n")
+	var nonBlank []string
+	for _, l := range lines {
+		if strings.TrimSpace(l) != "" {
+			nonBlank = append(nonBlank, l)
+		}
+	}
+	// Should contain all commands, including duplicates, but no blank lines
+	assert.Contains(t, nonBlank, "echo foo")
+	assert.Contains(t, nonBlank, "echo bar")
+	assert.Contains(t, nonBlank, "echo baz")
+	for _, l := range nonBlank {
+		assert.NotEqual(t, "", strings.TrimSpace(l))
+	}
+}
+
+func TestREPL_SequenceAffectsState(t *testing.T) {
+	binPath := "../binks"
+	buildCmd := exec.Command("go", "build", "-o", binPath, "../cmd/binks")
+	if err := buildCmd.Run(); err != nil {
+		t.Skip("Could not build binks binary: ", err)
+	}
+	if _, err := os.Stat(binPath); err != nil {
+		t.Skip("binks binary not found: ", err)
+	}
+	// Sequence: pwd; cd ..; pwd; exit
+	startDir, _ := os.Getwd()
+	parentDir := filepath.Dir(startDir)
+	input := "pwd\ncd ..\npwd\nexit\n"
+	cmd := exec.Command(binPath)
+	cmd.Stdin = strings.NewReader(input)
+	output, err := cmd.CombinedOutput()
+	require.NoError(t, err)
+	outStr := string(output)
+	// Should see startDir and parentDir in output
+	assert.Contains(t, outStr, startDir)
+	assert.Contains(t, outStr, parentDir)
+}
+
+func TestProcessREPLLine_BuiltinsAndExternal(t *testing.T) {
+	var out, errOut strings.Builder
+	sess := NewSession()
+
+	// Test blank line
+	exit := processREPLLine("", sess, &out, &errOut)
+	assert.False(t, exit)
+	assert.Equal(t, "", out.String())
+	assert.Equal(t, "", errOut.String())
+
+	// Test exit command
+	out.Reset(); errOut.Reset()
+	exit = processREPLLine("exit", sess, &out, &errOut)
+	assert.True(t, exit)
+
+	// Test cd to home
+	out.Reset(); errOut.Reset()
+	home, _ := os.UserHomeDir()
+	sess.ChangeDir("/tmp") // move away from home
+	exit = processREPLLine("cd", sess, &out, &errOut)
+	assert.False(t, exit)
+	assert.Equal(t, home, sess.Cwd())
+
+	// Test cd to invalid dir
+	out.Reset(); errOut.Reset()
+	badDir := "/no/such/dir/shouldexist"
+	exit = processREPLLine("cd "+badDir, sess, &out, &errOut)
+	assert.False(t, exit)
+	assert.Contains(t, errOut.String(), "Error:")
+
+	// Test help
+	out.Reset(); errOut.Reset()
+	exit = processREPLLine("help", sess, &out, &errOut)
+	assert.False(t, exit)
+	assert.Contains(t, out.String(), "Built-in commands:")
+
+	// Test external command (mock)
+	mock := &executor.MockExecutorTestify{}
+	mock.On("RunCommand", "echo hi").Return("hi\n", nil)
+	sess.Executor = mock
+	out.Reset(); errOut.Reset()
+	exit = processREPLLine("echo hi", sess, &out, &errOut)
+	assert.False(t, exit)
+	assert.Contains(t, out.String(), "hi")
+	mock.AssertExpectations(t)
+
+	// Test external command error
+	mock.On("RunCommand", "fail").Return("", errors.New("fail"))
+	out.Reset(); errOut.Reset()
+	exit = processREPLLine("fail", sess, &out, &errOut)
+	assert.False(t, exit)
+	assert.Contains(t, errOut.String(), "Error:")
+}
