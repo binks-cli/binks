@@ -14,22 +14,18 @@ import (
 
 func enableAltScreen() {
 	if term.IsTerminal(int(os.Stdout.Fd())) {
-		if _, err := fmt.Fprint(os.Stdout, "\x1b[?1049h"); err != nil {
+		_, err := fmt.Fprint(os.Stdout, "\x1b[?1049h")
+		if err != nil {
 			fmt.Fprintln(os.Stderr, "failed to enable alt screen:", err)
-		}
-		if err := os.Stdout.Sync(); err != nil {
-			fmt.Fprintln(os.Stderr, "failed to sync stdout:", err)
 		}
 	}
 }
 
 func disableAltScreen() {
 	if term.IsTerminal(int(os.Stdout.Fd())) {
-		if _, err := fmt.Fprint(os.Stdout, "\x1b[?1049l"); err != nil {
+		_, err := fmt.Fprint(os.Stdout, "\x1b[?1049l")
+		if err != nil {
 			fmt.Fprintln(os.Stderr, "failed to disable alt screen:", err)
-		}
-		if err := os.Stdout.Sync(); err != nil {
-			fmt.Fprintln(os.Stderr, "failed to sync stdout:", err)
 		}
 	}
 }
@@ -54,7 +50,15 @@ func main() {
 		err := shell.RunREPL(sess)
 		if err != nil {
 			fmt.Fprint(os.Stderr, shell.ErrorMessage(err))
+			if altScreen {
+				disableAltScreen()
+				fmt.Fprintln(os.Stdout) // Ensure shell prompt appears on a new line
+			}
 			os.Exit(1)
+		}
+		if altScreen {
+			disableAltScreen()
+			fmt.Fprintln(os.Stdout) // Ensure shell prompt appears on a new line
 		}
 		return
 	}
@@ -67,8 +71,16 @@ func main() {
 
 	if err != nil {
 		fmt.Fprint(os.Stderr, shell.ErrorMessage(err))
+		if altScreen {
+			disableAltScreen()
+			fmt.Fprintln(os.Stdout) // Ensure shell prompt appears on a new line
+		}
 		os.Exit(1)
 	}
 
 	fmt.Print(output)
+	if altScreen {
+		disableAltScreen()
+		fmt.Fprintln(os.Stdout) // Ensure shell prompt appears on a new line
+	}
 }
