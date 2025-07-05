@@ -10,9 +10,14 @@ import (
 	"testing"
 
 	"github.com/binks-cli/binks/internal/executor"
+	"github.com/fatih/color"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+func init() {
+	color.NoColor = true
+}
 
 // NOTE: This test suite covers all acceptance criteria from issue #30:
 // - cd command: success, failure, edge cases (root, home, trailing slash, invalid dir, platform-specific)
@@ -454,13 +459,9 @@ func TestRunREPL_NonTTY(t *testing.T) {
 		w.Write([]byte("echo test\nexit\n"))
 		w.Close()
 	}()
-	// Temporarily replace os.Stdin with our pipe
-	oldStdin := os.Stdin
-	os.Stdin = r
-	defer func() { os.Stdin = oldStdin }()
-	err = RunREPL(sess)
-	assert.NoError(t, err)
-	// No assertion on output, just ensure it runs without error
+	var out strings.Builder
+	RunREPLNonInteractive(sess, r, &out, io.Discard)
+	assert.Contains(t, out.String(), "test")
 }
 
 type errLineReader struct{}
@@ -484,4 +485,45 @@ func TestPromptFunctions(t *testing.T) {
 	assert.Contains(t, fp, "binks:")
 	plain := plainPrompt(cwd)
 	assert.Contains(t, plain, "binks:")
+}
+
+func TestAIConfirmationPromptAndExecution(t *testing.T) {
+	// Simulate a session with a mock agent that returns a code block
+	sess := NewSession()
+	sess.Agent = agentFuncMock(func(prompt string) (string, error) {
+		return "Run this:\n```sh\necho confirmed\n```", nil
+	})
+	sess.AIEnabled = true
+	var out, errOut strings.Builder
+
+	// Step 1: User asks AI for a command
+	processREPLLine(">> test confirm", sess, &out, &errOut)
+	// Should prompt for confirmation
+	assert.Contains(t, out.String(), "AI suggests: echo confirmed")
+	assert.Contains(t, out.String(), "Execute this? [y/N]:")
+	out.Reset()
+
+	// Step 2: User confirms
+	processREPLLine("y", sess, &out, &errOut)
+	// Should execute the command (mocked, so no output)
+	// pendingSuggestion should be cleared
+	assert.Nil(t, sess.pendingSuggestion)
+}
+
+func TestAIConfirmationDecline(t *testing.T) {
+	sess := NewSession()
+	sess.Agent = agentFuncMock(func(prompt string) (string, error) {
+		return "Do not run:\n```sh\necho shouldnotrun\n```", nil
+	})
+	sess.AIEnabled = true
+	var out, errOut strings.Builder
+
+	processREPLLine(">> test decline", sess, &out, &errOut)
+	assert.Contains(t, out.String(), "AI suggests: echo shouldnotrun")
+	assert.Contains(t, out.String(), "Execute this? [y/N]:")
+	out.Reset()
+
+	processREPLLine("n", sess, &out, &errOut)
+	assert.Contains(t, out.String(), "[AI] Cancelled.")
+	assert.Nil(t, sess.pendingSuggestion)
 }

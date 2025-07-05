@@ -193,12 +193,12 @@ func processREPLLine(line string, sess *Session, out, errOut io.Writer) (exit bo
 		} else if resp == "[AI]" && sess.pendingSuggestion != nil {
 			// Show explanation and command, prompt for confirmation
 			if sess.pendingSuggestion.explanation != "" {
-				aiColor.Fprintf(out, "[AI] %s\n", sess.pendingSuggestion.explanation)
+				fmt.Fprintf(out, "[AI] %s\n", sess.pendingSuggestion.explanation)
 			}
-			color.New(color.FgHiWhite, color.Bold).Fprintf(out, "AI suggests: %s\n", sess.pendingSuggestion.command)
-			color.New(color.FgHiBlack).Fprintf(out, "Execute this? [y/N]: ")
+			fmt.Fprintf(out, "AI suggests: %s\n", sess.pendingSuggestion.command)
+			fmt.Fprintf(out, "Execute this? [y/N]: ")
 		} else {
-			aiColor.Fprintf(out, "%s\n", resp[5:])
+			fmt.Fprintf(out, "%s\n", resp[5:])
 		}
 		return false
 	}

@@ -1,6 +1,7 @@
 package shell
 
 import (
+	"regexp"
 	"strings"
 
 	"github.com/binks-cli/binks/internal/agent"
@@ -37,18 +38,14 @@ func (s *Session) ExecuteLine(line string) (string, error) {
 // parseAISuggestion extracts explanation and the first shell command code block from AI response.
 func parseAISuggestion(resp string) (explanation, command string) {
 	resp = strings.ReplaceAll(resp, "\r\n", "\n")
-	parts := strings.Split(resp, "```")
-	if len(parts) < 3 {
-		return resp, "" // No code block found
+	// Regex to match code block: ```[lang]?\n...\n```
+	re := regexp.MustCompile("(?s)```(?:[a-zA-Z]+)?\\n(.*?)```")
+	match := re.FindStringSubmatch(resp)
+	if match != nil {
+		cmd := strings.TrimSpace(match[1])
+		// Remove the code block from the response for explanation
+		explanation = strings.TrimSpace(re.ReplaceAllString(resp, ""))
+		return explanation, cmd
 	}
-	// parts[0]: explanation, parts[1]: language (optional), parts[2]: code
-	explanation = strings.TrimSpace(parts[0])
-	code := strings.TrimSpace(parts[2])
-	// If the code block starts with 'sh' or 'bash', skip that line
-	if strings.HasPrefix(code, "sh\n") {
-		code = strings.TrimPrefix(code, "sh\n")
-	} else if strings.HasPrefix(code, "bash\n") {
-		code = strings.TrimPrefix(code, "bash\n")
-	}
-	return explanation, strings.TrimSpace(code)
+	return resp, ""
 }
