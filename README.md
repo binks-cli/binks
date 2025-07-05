@@ -159,3 +159,37 @@ Binks now supports running many interactive and full-screen console programs (li
 - top, htop
 
 If you find an interactive program that does not work as expected, please open an issue. For best results, ensure your terminal supports ANSI escape codes and is not running in a restricted environment.
+
+---
+
+## 🤖 AI Mode
+
+Binks supports an **AI mode** that lets you route your input to an AI agent for natural language queries, code suggestions, or shell command help.
+
+### How to use AI mode
+
+- **Per-query:** Prefix your input with `>>` to send it to the AI agent. Example:
+  ```
+  >> How do I list all files including hidden ones?
+  ```
+  The agent will respond with an answer or suggestion.
+
+- **Global AI mode:** Enable AI mode for all input with the command:
+  ```
+  :ai on
+  ```
+  When enabled, the prompt will show `[AI]` and all input will be sent to the agent unless you prefix with `!` to force a shell command (e.g., `!ls`).
+  To turn off AI mode, use:
+  ```
+  :ai off
+  ```
+
+- **Prompt indication:**
+  - When AI mode is active, the prompt changes to `[AI] binks:~/dir >` (with color if your terminal supports it).
+  - When AI mode is off, the prompt is `binks:~/dir >`.
+
+- **AI agent:**
+  - By default, Binks uses a stub agent that echoes your query. Future versions will integrate with real LLMs (OpenAI, etc).
+
+- **Error handling:**
+  - If the agent is unavailable or returns an error, you’ll see a clear error message.

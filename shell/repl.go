@@ -24,7 +24,7 @@ func RunREPL(sess *Session) error {
 		}
 		historyFile := filepath.Join(homeDir, ".binks_history")
 		config := &readline.Config{
-			Prompt:          prompt(sess.Cwd()),
+			Prompt:          promptWithAI(sess.Cwd(), sess.AIEnabled),
 			HistoryLimit:    100,
 			InterruptPrompt: "^C\n",
 			EOFPrompt:       "exit\n",
@@ -47,7 +47,7 @@ func RunREPL(sess *Session) error {
 func RunREPLNonInteractive(sess *Session, in io.Reader, out, errOut io.Writer) error {
 	scanner := bufio.NewScanner(in)
 	// Print initial prompt
-	fmt.Fprint(out, prompt(sess.Cwd()))
+	fmt.Fprint(out, promptWithAI(sess.Cwd(), sess.AIEnabled))
 	if f, ok := out.(interface{ Sync() error }); ok {
 		_ = f.Sync()
 	}
@@ -55,7 +55,7 @@ func RunREPLNonInteractive(sess *Session, in io.Reader, out, errOut io.Writer) e
 		line := scanner.Text()
 		exit := processREPLLine(line, sess, out, errOut)
 		// Print prompt after each command (to match interactive mode)
-		fmt.Fprint(out, prompt(sess.Cwd()))
+		fmt.Fprint(out, promptWithAI(sess.Cwd(), sess.AIEnabled))
 		if f, ok := out.(interface{ Sync() error }); ok {
 			_ = f.Sync()
 		}
@@ -96,14 +96,14 @@ func runREPLInteractive(sess *Session, rl LineReader, out, errOut io.Writer) err
 		}
 		exit := processREPLLine(line, sess, out, errOut)
 		if line == "" {
-			rl.SetPrompt(prompt(sess.Cwd()))
+			rl.SetPrompt(promptWithAI(sess.Cwd(), sess.AIEnabled))
 			continue
 		}
 		if strings.HasPrefix(line, "cd") || line == "help" || line == "?" {
-			rl.SetPrompt(formatPrompt(sess.Cwd()))
+			rl.SetPrompt(promptWithAI(sess.Cwd(), sess.AIEnabled))
 			continue
 		}
-		rl.SetPrompt(formatPrompt(sess.Cwd()))
+		rl.SetPrompt(promptWithAI(sess.Cwd(), sess.AIEnabled))
 		if exit {
 			break
 		}
@@ -140,13 +140,39 @@ func processREPLLine(line string, sess *Session, out, errOut io.Writer) (exit bo
 		printHelp(out)
 		return false
 	}
+	if strings.HasPrefix(line, ":ai ") {
+		cmd := strings.TrimSpace(line[4:])
+		if cmd == "on" {
+			sess.AIEnabled = true
+			fmt.Fprintln(out, "[AI mode enabled]")
+		} else if cmd == "off" {
+			sess.AIEnabled = false
+			fmt.Fprintln(out, "[AI mode disabled]")
+		} else {
+			fmt.Fprintln(out, "Usage: :ai on|off")
+		}
+		return false
+	}
 	// AI query handling
-	if agent.IsAIQuery(line) && sess.Agent != nil {
-		resp, err := sess.ExecuteLine(line)
+	if sess.AIEnabled && sess.Agent != nil {
+		if strings.HasPrefix(line, "!") {
+			// Force shell command
+			output, err := sess.RunCommand(strings.TrimSpace(line[1:]))
+			if err != nil {
+				fmt.Fprint(errOut, ErrorMessage(err))
+			} else if output != "" {
+				fmt.Fprint(out, output)
+				if !strings.HasSuffix(output, "\n") {
+					fmt.Fprint(out, "\n")
+				}
+			}
+			return false
+		}
+		resp, err := sess.ExecuteLine(agent.AIPrefix + line)
 		if err != nil {
 			aiColor.Fprintf(out, "[AI] error: %s\n", err.Error())
 		} else {
-			aiColor.Fprintf(out, "%s\n", resp[5:]) // skip [AI] prefix for color
+			aiColor.Fprintf(out, "%s\n", resp[5:])
 		}
 		return false
 	}
@@ -187,4 +213,18 @@ All other input is executed as shell commands in your shell environment.`
 	if _, err := fmt.Fprintln(w, help); err != nil {
 		fmt.Fprintln(os.Stderr, "failed to print help:", err)
 	}
+}
+
+// promptWithAI returns the shell prompt string, with [AI] marker if AI mode is enabled.
+func promptWithAI(cwd string, aiEnabled bool) string {
+	if aiEnabled {
+		if isatty.IsTerminal(os.Stdout.Fd()) {
+			return color.New(color.FgCyan, color.Bold).Sprintf("[AI] binks:%s > ", cwd)
+		}
+		return "[AI] binks:" + cwd + " > "
+	}
+	if isatty.IsTerminal(os.Stdout.Fd()) {
+		return formatPrompt(cwd)
+	}
+	return plainPrompt(cwd)
 }

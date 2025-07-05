@@ -5,15 +5,16 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/binks-cli/binks/internal/executor"
 	"github.com/binks-cli/binks/internal/agent"
+	"github.com/binks-cli/binks/internal/executor"
 )
 
 // Session represents the state of a shell session
 type Session struct {
-	Executor executor.Executor
-	Agent    agent.Agent // AI agent for handling AI queries
-	cwd      string // Current working directory
+	Executor  executor.Executor
+	Agent     agent.Agent // AI agent for handling AI queries
+	cwd       string      // Current working directory
+	AIEnabled bool        // Global AI mode toggle
 	// Future fields for working directory, history, etc.
 }
 
@@ -24,9 +25,10 @@ func NewSession() *Session {
 		wd = "." // fallback
 	}
 	return &Session{
-		Executor: executor.NewBashExecutor(),
-		Agent:    nil, // Agent can be set after creation
-		cwd:      wd,
+		Executor:  executor.NewBashExecutor(),
+		Agent:     nil, // Agent can be set after creation
+		cwd:       wd,
+		AIEnabled: false, // Default to off
 	}
 }
 
