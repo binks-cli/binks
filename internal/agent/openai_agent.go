@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"net/http"
 	"os"
@@ -14,10 +15,10 @@ import (
 
 // OpenAIAgent implements the Agent interface using OpenAI's API.
 type OpenAIAgent struct {
-	APIKey   string
-	Model    string
-	BaseURL  string
-	Client   interface {
+	APIKey  string
+	Model   string
+	BaseURL string
+	Client  interface {
 		Do(req *http.Request) (*http.Response, error)
 	}
 }
@@ -47,9 +48,9 @@ type openAIMessage struct {
 }
 
 type openAIRequest struct {
-	Model    string         `json:"model"`
-	Messages []openAIMessage `json:"messages"`
-	MaxTokens int           `json:"max_tokens,omitempty"`
+	Model     string          `json:"model"`
+	Messages  []openAIMessage `json:"messages"`
+	MaxTokens int             `json:"max_tokens,omitempty"`
 }
 
 type openAIResponse struct {
@@ -63,6 +64,10 @@ type openAIResponse struct {
 
 // Respond sends the prompt to OpenAI and returns the reply.
 func (a *OpenAIAgent) Respond(prompt string) (string, error) {
+	debug := os.Getenv("BINKS_DEBUG_AI") == "1"
+	if debug {
+		fmt.Fprintf(os.Stderr, "[OpenAIAgent] Received prompt: %q\n", prompt)
+	}
 	if a.APIKey == "" {
 		return "", errors.New("AI is not configured. Set OPENAI_API_KEY environment variable")
 	}
@@ -70,12 +75,15 @@ func (a *OpenAIAgent) Respond(prompt string) (string, error) {
 	defer cancel()
 	url := a.BaseURL + "/chat/completions"
 	payload := openAIRequest{
-		Model: a.Model,
+		Model:    a.Model,
 		Messages: []openAIMessage{{Role: "user", Content: prompt}},
 	}
 	body, err := json.Marshal(payload)
 	if err != nil {
 		return "", err
+	}
+	if debug {
+		fmt.Fprintf(os.Stderr, "[OpenAIAgent] Sending request to %s: %s\n", url, string(body))
 	}
 	req, err := http.NewRequestWithContext(ctx, "POST", url, bytes.NewReader(body))
 	if err != nil {
@@ -91,6 +99,9 @@ func (a *OpenAIAgent) Respond(prompt string) (string, error) {
 	respBody, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return "", err
+	}
+	if debug {
+		fmt.Fprintf(os.Stderr, "[OpenAIAgent] Raw response: %s\n", string(respBody))
 	}
 	var aiResp openAIResponse
 	if err := json.Unmarshal(respBody, &aiResp); err != nil {
