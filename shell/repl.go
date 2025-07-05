@@ -56,23 +56,23 @@ func RunREPL(sess *Session) error {
 				}
 				err := sess.ChangeDir(strings.TrimSpace(cdArg))
 				if err != nil {
-					errMsg := fmt.Sprintf("Error: %v", err)
+					errMsg := fmt.Sprintf("%sError: %v%s", ErrorColor, err, ResetColor)
 					fmt.Fprint(os.Stderr, errMsg)
 					if !strings.HasSuffix(errMsg, "\n") {
 						fmt.Fprint(os.Stderr, "\n")
 					}
 				}
-				rl.SetPrompt(prompt(sess.Cwd()))
+				rl.SetPrompt(formatPrompt(sess.Cwd()))
 				continue
 			}
 			if line == "help" || line == "?" {
 				printHelp(os.Stdout)
-				rl.SetPrompt(prompt(sess.Cwd()))
+				rl.SetPrompt(formatPrompt(sess.Cwd()))
 				continue
 			}
 			output, err := sess.RunCommand(line)
 			if err != nil {
-				errMsg := fmt.Sprintf("Error: %v", err)
+				errMsg := fmt.Sprintf("%sError: %v%s", ErrorColor, err, ResetColor)
 				fmt.Fprint(os.Stderr, errMsg)
 				if !strings.HasSuffix(errMsg, "\n") {
 					fmt.Fprint(os.Stderr, "\n")
@@ -83,7 +83,7 @@ func RunREPL(sess *Session) error {
 					fmt.Print("\n")
 				}
 			}
-			rl.SetPrompt(prompt(sess.Cwd()))
+			rl.SetPrompt(formatPrompt(sess.Cwd()))
 		}
 		return nil
 	}
@@ -111,25 +111,25 @@ func RunREPL(sess *Session) error {
 			}
 			err := sess.ChangeDir(strings.TrimSpace(cdArg))
 			if err != nil {
-				errMsg := fmt.Sprintf("Error: %v", err)
+				errMsg := fmt.Sprintf("%sError: %v%s", ErrorColor, err, ResetColor)
 				fmt.Fprint(os.Stderr, errMsg)
 				if !strings.HasSuffix(errMsg, "\n") {
 					fmt.Fprint(os.Stderr, "\n")
 				}
 			}
-			fmt.Print(prompt(sess.Cwd()))
+			fmt.Print(formatPrompt(sess.Cwd()))
 			os.Stdout.Sync()
 			continue
 		}
 		if line == "help" || line == "?" {
 			printHelp(os.Stdout)
-			fmt.Print(prompt(sess.Cwd()))
+			fmt.Print(formatPrompt(sess.Cwd()))
 			os.Stdout.Sync()
 			continue
 		}
 		output, err := sess.RunCommand(line)
 		if err != nil {
-			errMsg := fmt.Sprintf("Error: %v", err)
+			errMsg := fmt.Sprintf("%sError: %v%s", ErrorColor, err, ResetColor)
 			fmt.Fprint(os.Stderr, errMsg)
 			if !strings.HasSuffix(errMsg, "\n") {
 				fmt.Fprint(os.Stderr, "\n")
@@ -140,7 +140,7 @@ func RunREPL(sess *Session) error {
 				fmt.Print("\n")
 			}
 		}
-		fmt.Print(prompt(sess.Cwd()))
+		fmt.Print(formatPrompt(sess.Cwd()))
 		os.Stdout.Sync()
 	}
 	if err := scanner.Err(); err != nil {

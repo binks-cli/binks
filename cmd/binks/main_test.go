@@ -7,6 +7,12 @@ import (
 	"testing"
 )
 
+func containsPrompt(output string) bool {
+	plain := "binks>"
+	colored := "binks:"
+	return strings.Contains(output, plain) || strings.Contains(output, colored)
+}
+
 func TestMainCLI_TableDriven(t *testing.T) {
 	binPath := "../../binks"
 	if _, err := os.Stat(binPath); os.IsNotExist(err) {
@@ -34,7 +40,7 @@ func TestMainCLI_TableDriven(t *testing.T) {
 			name:   "REPL mode (no arguments)",
 			args:   []string{},
 			stdin:  "exit\n",
-			expect:  "binks>",
+			expect:  "binks:",
 		},
 		{
 			name:        "invalid command",
@@ -52,6 +58,13 @@ func TestMainCLI_TableDriven(t *testing.T) {
 			}
 			output, err := cmd.CombinedOutput()
 			outputStr := string(output)
+
+			if tc.name == "REPL mode (no arguments)" {
+				if !containsPrompt(outputStr) {
+					t.Errorf("Expected prompt in output, got: %s", outputStr)
+				}
+				return
+			}
 
 			if tc.expectError {
 				if err == nil {

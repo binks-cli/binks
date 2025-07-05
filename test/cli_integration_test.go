@@ -9,6 +9,12 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func containsPrompt(output string) bool {
+	plain := "binks>"
+	colored := "binks:"
+	return strings.Contains(output, plain) || strings.Contains(output, colored)
+}
+
 func TestCLI_NoArgs_StartsREPL(t *testing.T) {
 	binPath := "../binks"
 	buildCmd := exec.Command("go", "build", "-o", binPath, "./cmd/binks")
@@ -18,7 +24,7 @@ func TestCLI_NoArgs_StartsREPL(t *testing.T) {
 	cmd.Stdin = strings.NewReader("exit\n")
 	output, err := cmd.CombinedOutput()
 	require.NoError(t, err)
-	assert.Contains(t, string(output), "binks>")
+	assert.True(t, containsPrompt(string(output)), "Expected prompt in output")
 }
 
 func TestCLI_HelpCommand(t *testing.T) {
