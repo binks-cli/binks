@@ -215,3 +215,30 @@ Binks supports an **AI mode** that lets you route your input to an AI agent for 
 
 - **Error handling:**
   - If the agent is unavailable or returns an error, you’ll see a clear error message.
+
+### AI Command Suggestion Confirmation (v0.5.0+)
+
+When the AI agent responds with a shell command suggestion (in a code block), Binks will **never execute it automatically**. Instead, you will see:
+
+- The AI's explanation (if present)
+- The suggested command, clearly formatted
+- A confirmation prompt: `Execute this? [y/N]:`
+
+**Example:**
+```
+[AI] Here is what you should do:
+AI suggests: git pull && make test
+Execute this? [y/N]:
+```
+
+- Type `y` or `yes` to approve and run the command.
+- Type `n`, `no`, or just press Enter to decline (the command will not run).
+- If you decline, you'll see `[AI] Cancelled.`
+
+This workflow ensures you are always in control of what gets executed, even when using powerful AI agents.
+
+- Only the first code block in the AI response is considered a command suggestion.
+- If no code block is present, the AI's response is shown as plain text.
+- Declined suggestions are not logged by default (see roadmap for future enhancements).
+
+---
