@@ -3,6 +3,7 @@ package executor
 import (
 	"fmt"
 	"github.com/creack/pty"
+	"golang.org/x/term"
 	"io"
 	"os"
 	"os/exec"
@@ -62,6 +63,13 @@ func (e *BashExecutor) RunCommandWithDir(cmd string, dir string) (string, error)
 			return "", err
 		}
 		defer func() { _ = ptmx.Close() }()
+
+		// Save the current terminal state
+		oldState, err := term.MakeRaw(int(os.Stdin.Fd()))
+		if err != nil {
+			return "", err
+		}
+		defer func() { _ = term.Restore(int(os.Stdin.Fd()), oldState) }()
 
 		// Handle terminal resize
 		ch := make(chan os.Signal, 1)
