@@ -27,6 +27,12 @@ jobs:
         uses: golangci/golangci-lint-action@v4
         with:
           version: v1.55.2
+      - name: Print Go environment and module status
+        run: |
+          go env
+          go list -m all
+          ls -la
+          pwd
       - name: Run golangci-lint
         run: golangci-lint run
       - name: Run go vet
