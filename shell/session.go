@@ -24,9 +24,15 @@ func NewSession() *Session {
 	if err != nil {
 		wd = "." // fallback
 	}
+	var ag agent.Agent
+	if os.Getenv("OPENAI_API_KEY") != "" {
+		ag = agent.NewOpenAIAgent()
+	} else {
+		ag = &agent.DummyAgent{}
+	}
 	return &Session{
 		Executor:  executor.NewBashExecutor(),
-		Agent:     nil, // Agent can be set after creation
+		Agent:     ag,
 		cwd:       wd,
 		AIEnabled: false, // Default to off
 	}

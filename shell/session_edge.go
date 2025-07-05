@@ -2,6 +2,7 @@ package shell
 
 import (
 	"strings"
+
 	"github.com/binks-cli/binks/internal/agent"
 )
 

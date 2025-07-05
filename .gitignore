@@ -21,3 +21,5 @@ go.work
 # Allow tracking of cmd/binks and main.go
 !cmd/binks/
 !cmd/binks/main.go
+
+env.local
