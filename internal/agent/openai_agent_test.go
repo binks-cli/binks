@@ -26,7 +26,9 @@ func TestOpenAIAgent_Respond_Success(t *testing.T) {
 	agent.Client = &fakeHTTPClient{
 		DoFunc: func(req *http.Request) (*http.Response, error) {
 			resp := openAIResponse{
-				Choices: []struct{ Message openAIMessage "json:\"message\"" }{{Message: openAIMessage{Role: "assistant", Content: "Hello!"}}},
+				Choices: []struct {
+					Message openAIMessage "json:\"message\""
+				}{{Message: openAIMessage{Role: "assistant", Content: "Hello!"}}},
 			}
 			b, _ := json.Marshal(resp)
 			return &http.Response{
@@ -59,7 +61,9 @@ func TestOpenAIAgent_Respond_APIError(t *testing.T) {
 	agent.Client = &fakeHTTPClient{
 		DoFunc: func(req *http.Request) (*http.Response, error) {
 			resp := openAIResponse{
-				Error: &struct{ Message string "json:\"message\"" }{Message: "unauthorized"},
+				Error: &struct {
+					Message string "json:\"message\""
+				}{Message: "unauthorized"},
 			}
 			b, _ := json.Marshal(resp)
 			return &http.Response{

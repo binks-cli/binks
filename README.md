@@ -31,7 +31,27 @@ $ binks
 binks:~/project >
 ```
 
--
+---
+
+## ⚙️ Configuration & Environment Variables
+
+Binks supports the following environment variables:
+
+| Variable            | Purpose                                                      | Default                  |
+|---------------------|--------------------------------------------------------------|--------------------------|
+| `OPENAI_API_KEY`    | Use a real OpenAI agent for AI mode.                         | (unset = stub agent)     |
+| `OPENAI_MODEL`      | Model name for OpenAI integration.                           | `gpt-3.5-turbo`          |
+| `OPENAI_API_BASE`   | Override OpenAI API base URL.                                | `https://api.openai.com/v1` |
+| `BINKS_ALT_SCREEN`  | Set to `1` to enable alternate screen buffer (TUI prep).     | `0` (disabled)           |
+| `BINKS_DEBUG_AI`    | Set to `1` for debug logs from the AI agent.                 | `0` (disabled)           |
+
+See `env.example` for a template.
+
+---
+
+## 🖥️ Alternate Screen / TUI Plan
+
+Binks supports an alternate screen buffer (like `vim`/`less`) when `BINKS_ALT_SCREEN=1` is set. This is a stepping stone to a full TUI (see [TUI Plan](docs/tui-plan.md)).
 
 ---
 
@@ -111,7 +131,7 @@ If you add new tests, make sure they do not require manual input or special loca
 
 ## 🤝 Contributing
 
-1. \*\*Fork → \*\*``
+1. **Fork → clone**
 2. **Write tests first.** PRs without coverage will be asked to add it.
 3. Follow **Conventional Commits**.
 4. `go fmt`, `go vet`, ensure CI passes.
@@ -134,6 +154,8 @@ Released under **MIT**. See [`LICENSE`](LICENSE).
 
 When you launch a known GUI application or background process (e.g., `idea .`, `code .`, `chrome`, or `open` on macOS), Binks will start the process asynchronously and immediately return control to the prompt. You'll see a message like `[launched idea]` to confirm the launch. This prevents the shell from hanging while the app runs.
 
+**Current async commands:** `idea`, `code`, `chrome`, `open`
+
 Other commands (including long-running ones like `sleep 10`) will block the prompt as usual. Support for explicit backgrounding with `&` is not yet implemented.
 
 - If you run a command not in the known list, it will run synchronously by default.
@@ -141,15 +163,9 @@ Other commands (including long-running ones like `sleep 10`) will block the prom
 
 ---
 
-## Command History
-
-Binks automatically saves your command history to a file in your home directory (`~/.binks_history`). This allows you to recall commands from previous sessions using the Up/Down arrows, similar to other shells. If you wish to clear your history, simply delete this file.
-
----
-
 ## 🖥️ Interactive Program Support
 
-Binks now supports running many interactive and full-screen console programs (like `vim`, `nano`, `less`, `man`, `ssh`, `top`, etc.) directly from the REPL. When you run one of these commands, Binks will yield full control of the terminal to the program until it exits, then restore your prompt and session state. This means you can use editors, pagers, and SSH sessions as you would in a normal shell.
+Binks supports running many interactive and full-screen console programs (like `vim`, `nano`, `less`, `man`, `ssh`, `top`, etc.) directly from the REPL. When you run one of these commands, Binks will yield full control of the terminal to the program until it exits, then restore your prompt and session state. This means you can use editors, pagers, and SSH sessions as you would in a normal shell.
 
 **Supported interactive commands include:**
 - vim, nvim, vi
@@ -159,6 +175,12 @@ Binks now supports running many interactive and full-screen console programs (li
 - top, htop
 
 If you find an interactive program that does not work as expected, please open an issue. For best results, ensure your terminal supports ANSI escape codes and is not running in a restricted environment.
+
+---
+
+## Command History
+
+Binks automatically saves your command history to a file in your home directory (`~/.binks_history`). This allows you to recall commands from previous sessions using the Up/Down arrows, similar to other shells. If you wish to clear your history, simply delete this file.
 
 ---
 
@@ -189,7 +211,7 @@ Binks supports an **AI mode** that lets you route your input to an AI agent for 
   - When AI mode is off, the prompt is `binks:~/dir >`.
 
 - **AI agent:**
-  - By default, Binks uses a stub agent that echoes your query. Future versions will integrate with real LLMs (OpenAI, etc).
+  - By default, Binks uses a stub agent that echoes your query. If you set `OPENAI_API_KEY`, Binks will use the real OpenAI API for responses.
 
 - **Error handling:**
   - If the agent is unavailable or returns an error, you’ll see a clear error message.
