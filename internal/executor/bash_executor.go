@@ -2,8 +2,13 @@ package executor
 
 import (
 	"fmt"
+	"github.com/creack/pty"
+	"io"
+	"os"
 	"os/exec"
+	"os/signal"
 	"strings"
+	"syscall"
 )
 
 // BashExecutor implements the Executor interface using bash shell
@@ -46,6 +51,34 @@ func (e *BashExecutor) RunCommandAsyncWithDir(cmd string, dir string) (string, e
 func (e *BashExecutor) RunCommandWithDir(cmd string, dir string) (string, error) {
 	if _, ok := isAsyncCommand(cmd); ok {
 		return e.RunCommandAsyncWithDir(cmd, dir)
+	}
+	if isInteractiveCommand(cmd) {
+		execCmd := exec.Command("bash", "-c", cmd)
+		if dir != "" {
+			execCmd.Dir = dir
+		}
+		ptmx, err := pty.Start(execCmd)
+		if err != nil {
+			return "", err
+		}
+		defer func() { _ = ptmx.Close() }()
+
+		// Handle terminal resize
+		ch := make(chan os.Signal, 1)
+		signal.Notify(ch, syscall.SIGWINCH)
+		go func() {
+			for range ch {
+				_ = pty.InheritSize(os.Stdin, ptmx)
+			}
+		}()
+		ch <- syscall.SIGWINCH // Initial resize
+		defer signal.Stop(ch)
+
+		// Copy stdin/stdout
+		go func() { _, _ = io.Copy(ptmx, os.Stdin) }()
+		_, _ = io.Copy(os.Stdout, ptmx)
+
+		return "", execCmd.Wait()
 	}
 	execCmd := exec.Command("bash", "-c", cmd)
 	if dir != "" {
