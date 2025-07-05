@@ -154,6 +154,25 @@ func processREPLLine(line string, sess *Session, out, errOut io.Writer) (exit bo
 		return false
 	}
 	// AI query handling
+	if sess.pendingSuggestion != nil {
+		// We are waiting for user confirmation
+		answer := strings.ToLower(strings.TrimSpace(line))
+		if answer == "y" || answer == "yes" {
+			sess.pendingSuggestion.confirmed = true
+			output, err := sess.RunCommand(sess.pendingSuggestion.command)
+			sess.pendingSuggestion = nil
+			if err != nil {
+				aiColor.Fprintf(out, "[AI] error: %s\n", err.Error())
+			} else if output != "" {
+				aiColor.Fprintf(out, "%s\n", output)
+			}
+		} else {
+			sess.pendingSuggestion.declined = true
+			aiColor.Fprintf(out, "[AI] Cancelled.\n")
+			sess.pendingSuggestion = nil
+		}
+		return false
+	}
 	if sess.AIEnabled && sess.Agent != nil {
 		if strings.HasPrefix(line, "!") {
 			// Force shell command
@@ -171,6 +190,13 @@ func processREPLLine(line string, sess *Session, out, errOut io.Writer) (exit bo
 		resp, err := sess.ExecuteLine(agent.AIPrefix + line)
 		if err != nil {
 			aiColor.Fprintf(out, "[AI] error: %s\n", err.Error())
+		} else if resp == "[AI]" && sess.pendingSuggestion != nil {
+			// Show explanation and command, prompt for confirmation
+			if sess.pendingSuggestion.explanation != "" {
+				aiColor.Fprintf(out, "[AI] %s\n", sess.pendingSuggestion.explanation)
+			}
+			color.New(color.FgHiWhite, color.Bold).Fprintf(out, "AI suggests: %s\n", sess.pendingSuggestion.command)
+			color.New(color.FgHiBlack).Fprintf(out, "Execute this? [y/N]: ")
 		} else {
 			aiColor.Fprintf(out, "%s\n", resp[5:])
 		}

@@ -11,10 +11,11 @@ import (
 
 // Session represents the state of a shell session
 type Session struct {
-	Executor  executor.Executor
-	Agent     agent.Agent // AI agent for handling AI queries
-	cwd       string      // Current working directory
-	AIEnabled bool        // Global AI mode toggle
+	Executor          executor.Executor
+	Agent             agent.Agent        // AI agent for handling AI queries
+	cwd               string             // Current working directory
+	AIEnabled         bool               // Global AI mode toggle
+	pendingSuggestion *PendingSuggestion // Holds a pending AI suggestion for confirmation
 	// Future fields for working directory, history, etc.
 }
 
@@ -85,4 +86,18 @@ func (s *Session) RunCommand(cmd string) (string, error) {
 		return be.RunCommandWithDir(cmd, s.cwd)
 	}
 	return s.Executor.RunCommand(cmd)
+}
+
+// PendingSuggestion holds an AI-suggested command and explanation for confirmation
+// explanation: any text outside the code block
+// command: the shell command(s) inside the code block
+// raw: the full AI response
+// confirmed: whether the user has confirmed execution
+// declined: whether the user has declined execution
+type PendingSuggestion struct {
+	explanation string
+	command     string
+	raw         string
+	confirmed   bool
+	declined    bool
 }
