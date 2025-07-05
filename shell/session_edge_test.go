@@ -12,16 +12,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-type mockExecutor struct {
-	lastCmd string
-	resp    string
-	err     error
-}
-
-func (m *mockExecutor) RunCommand(cmd string) (string, error) {
-	m.lastCmd = cmd
-	return m.resp, m.err
-}
+// Remove local mockExecutor; now shared in session_test_helpers.go
 
 func TestSession_ChangeDir_EdgeCases(t *testing.T) {
 	tmp := t.TempDir()

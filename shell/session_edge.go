@@ -9,8 +9,18 @@ import (
 
 // ExecuteLine dispatches input to the shell executor or the Agent, depending on isAIQuery.
 func (s *Session) ExecuteLine(line string) (string, error) {
+	trimmed := strings.TrimSpace(line)
+	if s.pendingSuggestion != nil {
+		if strings.EqualFold(trimmed, "yes") {
+			cmd := s.pendingSuggestion.command
+			s.pendingSuggestion = nil
+			return s.RunCommand(cmd)
+		} else if strings.EqualFold(trimmed, "no") {
+			s.pendingSuggestion = nil
+			return "Cancelled", nil
+		}
+	}
 	if agent.IsAIQuery(line) && s.Agent != nil {
-		trimmed := strings.TrimSpace(line)
 		if strings.HasPrefix(trimmed, ">>") {
 			trimmed = strings.TrimSpace(trimmed[2:])
 		}
