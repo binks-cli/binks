@@ -8,7 +8,9 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/binks-cli/binks/internal/agent"
 	"github.com/chzyer/readline"
+	"github.com/fatih/color"
 	"github.com/mattn/go-isatty"
 )
 
@@ -109,6 +111,8 @@ func runREPLInteractive(sess *Session, rl LineReader, out, errOut io.Writer) err
 	return nil
 }
 
+var aiColor = color.New(color.FgCyan, color.Bold)
+
 // processREPLLine handles a single REPL input line and returns whether to exit the loop.
 func processREPLLine(line string, sess *Session, out, errOut io.Writer) (exit bool) {
 	line = strings.TrimSpace(line)
@@ -134,6 +138,16 @@ func processREPLLine(line string, sess *Session, out, errOut io.Writer) (exit bo
 	}
 	if line == "help" || line == "?" {
 		printHelp(out)
+		return false
+	}
+	// AI query handling
+	if agent.IsAIQuery(line) && sess.Agent != nil {
+		resp, err := sess.ExecuteLine(line)
+		if err != nil {
+			aiColor.Fprintf(out, "[AI] error: %s\n", err.Error())
+		} else {
+			aiColor.Fprintf(out, "%s\n", resp[5:]) // skip [AI] prefix for color
+		}
 		return false
 	}
 	output, err := sess.RunCommand(line)
@@ -168,6 +182,7 @@ func printHelp(w io.Writer) {
   exit        – Exit the shell
   help, ?     – Show this help message
 
+AI queries: Start your input with '>>' to ask the AI agent (e.g., '>> how do I list files?').
 All other input is executed as shell commands in your shell environment.`
 	if _, err := fmt.Fprintln(w, help); err != nil {
 		fmt.Fprintln(os.Stderr, "failed to print help:", err)
