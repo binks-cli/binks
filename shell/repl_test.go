@@ -391,8 +391,8 @@ func TestRunREPLNonInteractive_Basic(t *testing.T) {
 // SetPrompt and Close are no-ops
 
 type mockLineReader struct {
-	lines  []string
-	idx    int
+	lines   []string
+	idx     int
 	prompts []string
 }
 
@@ -405,7 +405,7 @@ func (m *mockLineReader) Readline() (string, error) {
 	return line, nil
 }
 func (m *mockLineReader) SetPrompt(p string) { m.prompts = append(m.prompts, p) }
-func (m *mockLineReader) Close() error      { return nil }
+func (m *mockLineReader) Close() error       { return nil }
 
 func TestRunREPLInteractive_Basic(t *testing.T) {
 	sess := NewSession()
@@ -419,4 +419,57 @@ func TestRunREPLInteractive_Basic(t *testing.T) {
 	assert.Empty(t, errOut.String())
 	// Prompts should be set at least once
 	assert.NotEmpty(t, mockRL.prompts)
+}
+
+func TestPrintHelp(t *testing.T) {
+	var buf strings.Builder
+	printHelp(&buf)
+	helpText := buf.String()
+	assert.Contains(t, helpText, "Built-in commands:")
+	assert.Contains(t, helpText, "cd <dir>")
+	assert.Contains(t, helpText, "exit")
+	assert.Contains(t, helpText, "help, ?")
+}
+
+func TestRunREPL_NonTTY(t *testing.T) {
+	r, w, err := os.Pipe()
+	require.NoError(t, err)
+	defer r.Close()
+	defer w.Close()
+
+	sess := NewSession()
+	// Write a simple command and exit
+	go func() {
+		w.Write([]byte("echo test\nexit\n"))
+		w.Close()
+	}()
+	// Temporarily replace os.Stdin with our pipe
+	oldStdin := os.Stdin
+	os.Stdin = r
+	defer func() { os.Stdin = oldStdin }()
+	err = RunREPL(sess)
+	assert.NoError(t, err)
+	// No assertion on output, just ensure it runs without error
+}
+
+type errLineReader struct{}
+func (e *errLineReader) Readline() (string, error) { return "", io.ErrUnexpectedEOF }
+func (e *errLineReader) SetPrompt(string)         {}
+func (e *errLineReader) Close() error             { return nil }
+
+func TestRunREPLInteractive_ErrorHandling(t *testing.T) {
+	sess := NewSession()
+	err := runREPLInteractive(sess, &errLineReader{}, io.Discard, io.Discard)
+	assert.Error(t, err)
+	assert.Equal(t, io.ErrUnexpectedEOF, err)
+}
+
+func TestPromptFunctions(t *testing.T) {
+	cwd := "/tmp"
+	p := prompt(cwd)
+	assert.Contains(t, p, "binks:")
+	fp := formatPrompt(cwd)
+	assert.Contains(t, fp, "binks:")
+	plain := plainPrompt(cwd)
+	assert.Contains(t, plain, "binks:")
 }
