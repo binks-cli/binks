@@ -17,8 +17,8 @@ func TestBashExecutor_RunCommand_TableDriven(t *testing.T) {
 		command     string
 		expect      string
 		expectError bool
-		outputCheck func(t *testing.T, output string)
-		errCheck    func(t *testing.T, err error)
+		outputCheck func(_ *testing.T, output string)
+		errCheck    func(_ *testing.T, err error)
 	}{
 		{
 			name:    "simple echo",
@@ -73,11 +73,13 @@ func TestBashExecutor_RunCommand_TableDriven(t *testing.T) {
 			} else {
 				require.NoError(t, err, "Expected no error")
 			}
-			if tc.outputCheck != nil {
+			// gocritic: ifElseChain - rewrite if-else to switch statement
+			switch {
+			case tc.outputCheck != nil:
 				tc.outputCheck(t, output)
-			} else if tc.expect != "" {
+			case tc.expect != "":
 				assert.Equal(t, tc.expect, output, "Expected '%s'", tc.expect)
-			} else {
+			default:
 				assert.Equal(t, tc.expect, output, "Expected '%s'", tc.expect)
 			}
 		})
@@ -95,7 +97,9 @@ func TestBashExecutor_RunCommand_MultiLineOutput(t *testing.T) {
 	for _, file := range testFiles {
 		f, err := os.Create(filepath.Join(tempDir, file))
 		require.NoError(t, err, "Failed to create test file")
-		f.Close()
+		if err := f.Close(); err != nil {
+			t.Fatalf("Failed to close test file: %v", err)
+		}
 	}
 
 	// List files in the temp directory

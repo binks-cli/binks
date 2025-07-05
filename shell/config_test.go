@@ -24,9 +24,15 @@ func TestGetColor(t *testing.T) {
 }
 
 func TestLoadColorConfig_EnvOverride(t *testing.T) {
-	os.Setenv("BINKS_PROMPT_COLOR", "yellow")
-	os.Setenv("BINKS_BRANCH_COLOR", "blue")
-	os.Setenv("BINKS_ERROR_COLOR", "green")
+	if err := os.Setenv("BINKS_PROMPT_COLOR", "yellow"); err != nil {
+		t.Fatalf("Setenv failed: %v", err)
+	}
+	if err := os.Setenv("BINKS_BRANCH_COLOR", "blue"); err != nil {
+		t.Fatalf("Setenv failed: %v", err)
+	}
+	if err := os.Setenv("BINKS_ERROR_COLOR", "green"); err != nil {
+		t.Fatalf("Setenv failed: %v", err)
+	}
 	cfg := LoadColorConfig()
 	if cfg.PromptColor != "yellow" {
 		t.Errorf("PromptColor = %q, want yellow", cfg.PromptColor)
@@ -37,7 +43,13 @@ func TestLoadColorConfig_EnvOverride(t *testing.T) {
 	if cfg.ErrorColor != "green" {
 		t.Errorf("ErrorColor = %q, want green", cfg.ErrorColor)
 	}
-	os.Unsetenv("BINKS_PROMPT_COLOR")
-	os.Unsetenv("BINKS_BRANCH_COLOR")
-	os.Unsetenv("BINKS_ERROR_COLOR")
+	if err := os.Unsetenv("BINKS_PROMPT_COLOR"); err != nil {
+		t.Fatalf("Unsetenv failed: %v", err)
+	}
+	if err := os.Unsetenv("BINKS_BRANCH_COLOR"); err != nil {
+		t.Fatalf("Unsetenv failed: %v", err)
+	}
+	if err := os.Unsetenv("BINKS_ERROR_COLOR"); err != nil {
+		t.Fatalf("Unsetenv failed: %v", err)
+	}
 }

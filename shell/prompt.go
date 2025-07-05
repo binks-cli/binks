@@ -12,6 +12,7 @@ var ansiRegexp = regexp.MustCompile(`\x1b\[[0-9;]*m`)
 
 var colorConfig = LoadColorConfig()
 
+// ResetColor is the ANSI escape code to reset terminal color.
 const ResetColor = "\x1b[0m"
 
 // StripANSI removes ANSI escape codes from a string (for test compatibility)

@@ -11,7 +11,7 @@ func TestGetGitBranch_NotInRepo(t *testing.T) {
 	}
 }
 
-func TestGetGitBranch_Detached(t *testing.T) {
+func TestGetGitBranch_Detached(_ *testing.T) {
 	// This test is a placeholder: to fully test, mock exec.Command or run in a temp git repo
 	// For now, just ensure it doesn't panic
 	_ = GetGitBranch("/")

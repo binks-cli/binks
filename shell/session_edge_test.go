@@ -18,24 +18,24 @@ func TestSession_ChangeDir_EdgeCases(t *testing.T) {
 		name      string
 		input     string
 		expectErr bool
-		check     func(t *testing.T, sess *Session, err error)
+		check     func(_ *testing.T, sess *Session, _ error)
 	}{
-		{"empty string (home)", "", false, func(t *testing.T, sess *Session, err error) {
+		{"empty string (home)", "", false, func(_ *testing.T, sess *Session, _ error) {
 			home, _ := os.UserHomeDir()
 			assert.Equal(t, home, sess.Cwd())
 		}},
-		{"~ (home)", "~", false, func(t *testing.T, sess *Session, err error) {
+		{"~ (home)", "~", false, func(_ *testing.T, sess *Session, _ error) {
 			home, _ := os.UserHomeDir()
 			assert.Equal(t, home, sess.Cwd())
 		}},
-		{"non-existent dir", "/no/such/dir/shouldexist", true, func(t *testing.T, sess *Session, err error) {
+		{"non-existent dir", "/no/such/dir/shouldexist", true, func(_ *testing.T, sess *Session, err error) {
 			assert.Error(t, err)
 			assert.Equal(t, cwd, sess.Cwd(), "cwd should not change on error")
 		}},
-		{"relative valid dir", "..", false, func(t *testing.T, sess *Session, err error) {
+		{"relative valid dir", "..", false, func(_ *testing.T, sess *Session, _ error) {
 			assert.NotEqual(t, cwd, sess.Cwd())
 		}},
-		{"path with ~ prefix", "~/", false, func(t *testing.T, sess *Session, err error) {
+		{"path with ~ prefix", "~/", false, func(_ *testing.T, sess *Session, _ error) {
 			home, _ := os.UserHomeDir()
 			assert.True(t, strings.HasPrefix(sess.Cwd(), home))
 		}},

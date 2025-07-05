@@ -1,0 +1,16 @@
+version: "2"
+run:
+  timeout: 5m
+
+linters:
+  enable:
+    - govet
+    - errcheck
+    - staticcheck
+    - unused
+    - ineffassign
+    - revive
+    - misspell
+    - gocritic
+
+# Only include linters supported by golangci-lint 2.2.1

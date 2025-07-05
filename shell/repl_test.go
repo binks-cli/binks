@@ -193,7 +193,9 @@ func TestRunREPL_EOFHandling(t *testing.T) {
 	require.NoError(t, cmd.Start(), "Failed to start command")
 
 	// Close stdin to send EOF
-	stdin.Close()
+	if err := stdin.Close(); err != nil {
+		t.Fatalf("Failed to close stdin: %v", err)
+	}
 
 	// Wait for the command to finish
 	require.NoError(t, cmd.Wait(), "Expected clean exit on EOF")

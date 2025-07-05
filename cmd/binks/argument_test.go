@@ -1,3 +1,4 @@
+// Package main contains the entry point and CLI argument handling tests for binks.
 package main
 
 import (

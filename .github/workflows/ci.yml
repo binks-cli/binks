@@ -1,4 +1,4 @@
-name: Go CI
+name: CI
 
 on:
   push:
@@ -7,8 +7,11 @@ on:
     branches: [main]
 
 jobs:
-  build:
-    runs-on: ubuntu-latest
+  build-test:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
@@ -20,3 +23,28 @@ jobs:
         run: go build -o binks ./cmd/binks
       - name: Run tests
         run: go test -v ./...
+      - name: Install golangci-lint
+        uses: golangci/golangci-lint-action@v3
+        with:
+          version: latest
+      - name: Run golangci-lint
+        run: golangci-lint run
+      - name: Run go vet
+        run: go vet ./...
+      - name: Check formatting
+        run: go fmt -l . | grep . && exit 1 || exit 0
+      - name: Archive binary
+        if: runner.os != 'Windows'
+        uses: actions/upload-artifact@v4
+        with:
+          name: binks-${{ runner.os }}
+          path: binks
+      - name: Archive binary (Windows)
+        if: runner.os == 'Windows'
+        uses: actions/upload-artifact@v4
+        with:
+          name: binks-windows
+          path: binks.exe
+      - name: Install Git Bash (Windows)
+        if: runner.os == 'Windows'
+        run: choco install git

@@ -35,28 +35,27 @@ func (s *Session) Cwd() string {
 // ChangeDir changes the session's current working directory
 func (s *Session) ChangeDir(path string) error {
 	var target string
-	if path == "" {
+	switch {
+	case path == "":
 		home, err := os.UserHomeDir()
 		if err != nil {
 			return err
 		}
 		target = home
-	} else if path == "~" {
+	case path == "~":
 		home, err := os.UserHomeDir()
 		if err != nil {
 			return err
 		}
 		target = home
-	} else {
-		if strings.HasPrefix(path, "~") {
-			home, err := os.UserHomeDir()
-			if err != nil {
-				return err
-			}
-			target = filepath.Join(home, path[1:])
-		} else {
-			target = path
+	case strings.HasPrefix(path, "~"):
+		home, err := os.UserHomeDir()
+		if err != nil {
+			return err
 		}
+		target = filepath.Join(home, path[1:])
+	default:
+		target = path
 	}
 	if err := os.Chdir(target); err != nil {
 		return err

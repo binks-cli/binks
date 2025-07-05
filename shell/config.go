@@ -1,3 +1,4 @@
+// Package shell provides shell utilities and configuration for binks.
 package shell
 
 import (
@@ -8,6 +9,7 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
+// ColorConfig holds color settings for the prompt, branch, and error messages.
 type ColorConfig struct {
 	PromptColor string `yaml:"prompt_color"`
 	BranchColor string `yaml:"branch_color"`
@@ -15,6 +17,7 @@ type ColorConfig struct {
 	// Future: add MCP, editor, etc.
 }
 
+// BinksConfig holds the overall configuration for binks.
 type BinksConfig struct {
 	Colors ColorConfig `yaml:"colors"`
 	// Future: MCP, editor, etc.

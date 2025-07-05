@@ -14,15 +14,23 @@ import (
 
 func enableAltScreen() {
 	if term.IsTerminal(int(os.Stdout.Fd())) {
-		fmt.Fprint(os.Stdout, "\x1b[?1049h")
-		os.Stdout.Sync()
+		if _, err := fmt.Fprint(os.Stdout, "\x1b[?1049h"); err != nil {
+			fmt.Fprintln(os.Stderr, "failed to enable alt screen:", err)
+		}
+		if err := os.Stdout.Sync(); err != nil {
+			fmt.Fprintln(os.Stderr, "failed to sync stdout:", err)
+		}
 	}
 }
 
 func disableAltScreen() {
 	if term.IsTerminal(int(os.Stdout.Fd())) {
-		fmt.Fprint(os.Stdout, "\x1b[?1049l")
-		os.Stdout.Sync()
+		if _, err := fmt.Fprint(os.Stdout, "\x1b[?1049l"); err != nil {
+			fmt.Fprintln(os.Stderr, "failed to disable alt screen:", err)
+		}
+		if err := os.Stdout.Sync(); err != nil {
+			fmt.Fprintln(os.Stderr, "failed to sync stdout:", err)
+		}
 	}
 }
 
@@ -38,7 +46,7 @@ func main() {
 			disableAltScreen()
 			os.Exit(1)
 		}()
-		defer disableAltScreen()
+		// Do not use defer here, as os.Exit will prevent it from running
 	}
 	if len(os.Args) < 2 {
 		// Start interactive REPL mode
