@@ -14,6 +14,17 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// NOTE: This test suite covers all acceptance criteria from issue #30:
+// - cd command: success, failure, edge cases (root, home, trailing slash, invalid dir, platform-specific)
+// - exit and help commands: various forms, case insensitivity, blank lines, and output
+// - REPL loop: sequences like pwd; cd ..; pwd; exit
+// - History: file path, persistence, duplicates, blanks, and file writing/reading
+// - External cd command: verified not to affect session cwd
+// - Platform differences: tests adapt for Windows/Unix
+// - Resource closure: all files are closed after use
+//
+// If new shell features are added, please ensure corresponding tests are included here or in related test files.
+
 func containsPrompt(output string) bool {
 	// Accept both colored and plain prompt
 	plain := "binks>"
