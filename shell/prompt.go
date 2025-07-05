@@ -48,3 +48,8 @@ func prompt(cwd string) string {
 	}
 	return plainPrompt(cwd)
 }
+
+// ErrorMessage returns a red-colored error message string for the given error
+func ErrorMessage(err error) string {
+	return ErrorColor + "Error: " + err.Error() + ResetColor + "\n"
+}

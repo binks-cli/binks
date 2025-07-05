@@ -56,11 +56,7 @@ func RunREPL(sess *Session) error {
 				}
 				err := sess.ChangeDir(strings.TrimSpace(cdArg))
 				if err != nil {
-					errMsg := fmt.Sprintf("%sError: %v%s", ErrorColor, err, ResetColor)
-					fmt.Fprint(os.Stderr, errMsg)
-					if !strings.HasSuffix(errMsg, "\n") {
-						fmt.Fprint(os.Stderr, "\n")
-					}
+					fmt.Fprint(os.Stderr, ErrorMessage(err))
 				}
 				rl.SetPrompt(formatPrompt(sess.Cwd()))
 				continue
@@ -72,11 +68,7 @@ func RunREPL(sess *Session) error {
 			}
 			output, err := sess.RunCommand(line)
 			if err != nil {
-				errMsg := fmt.Sprintf("%sError: %v%s", ErrorColor, err, ResetColor)
-				fmt.Fprint(os.Stderr, errMsg)
-				if !strings.HasSuffix(errMsg, "\n") {
-					fmt.Fprint(os.Stderr, "\n")
-				}
+				fmt.Fprint(os.Stderr, ErrorMessage(err))
 			} else if output != "" {
 				fmt.Print(output)
 				if !strings.HasSuffix(output, "\n") {
@@ -111,11 +103,7 @@ func RunREPL(sess *Session) error {
 			}
 			err := sess.ChangeDir(strings.TrimSpace(cdArg))
 			if err != nil {
-				errMsg := fmt.Sprintf("%sError: %v%s", ErrorColor, err, ResetColor)
-				fmt.Fprint(os.Stderr, errMsg)
-				if !strings.HasSuffix(errMsg, "\n") {
-					fmt.Fprint(os.Stderr, "\n")
-				}
+				fmt.Fprint(os.Stderr, ErrorMessage(err))
 			}
 			fmt.Print(formatPrompt(sess.Cwd()))
 			os.Stdout.Sync()
@@ -129,11 +117,7 @@ func RunREPL(sess *Session) error {
 		}
 		output, err := sess.RunCommand(line)
 		if err != nil {
-			errMsg := fmt.Sprintf("%sError: %v%s", ErrorColor, err, ResetColor)
-			fmt.Fprint(os.Stderr, errMsg)
-			if !strings.HasSuffix(errMsg, "\n") {
-				fmt.Fprint(os.Stderr, "\n")
-			}
+			fmt.Fprint(os.Stderr, ErrorMessage(err))
 		} else if output != "" {
 			fmt.Print(output)
 			if !strings.HasSuffix(output, "\n") {

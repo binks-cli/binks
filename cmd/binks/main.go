@@ -15,7 +15,7 @@ func main() {
 		sess := shell.NewSession()
 		err := shell.RunREPL(sess)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "REPL error: %v\n", err)
+			fmt.Fprint(os.Stderr, shell.ErrorMessage(err))
 			os.Exit(1)
 		}
 		return
@@ -28,7 +28,7 @@ func main() {
 	output, err := exec.RunCommand(command)
 	
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+		fmt.Fprint(os.Stderr, shell.ErrorMessage(err))
 		os.Exit(1)
 	}
 	

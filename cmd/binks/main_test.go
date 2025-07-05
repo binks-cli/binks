@@ -34,13 +34,13 @@ func TestMainCLI_TableDriven(t *testing.T) {
 			name:   "echo command",
 			args:   []string{"echo", "test"},
 			stdin:  "",
-			expect:  "test",
+			expect: "test",
 		},
 		{
 			name:   "REPL mode (no arguments)",
 			args:   []string{},
 			stdin:  "exit\n",
-			expect:  "binks:",
+			expect: "binks:",
 		},
 		{
 			name:        "invalid command",
