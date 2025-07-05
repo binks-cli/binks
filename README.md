@@ -146,3 +146,16 @@ Other commands (including long-running ones like `sleep 10`) will block the prom
 Binks automatically saves your command history to a file in your home directory (`~/.binks_history`). This allows you to recall commands from previous sessions using the Up/Down arrows, similar to other shells. If you wish to clear your history, simply delete this file.
 
 ---
+
+## 🖥️ Interactive Program Support
+
+Binks now supports running many interactive and full-screen console programs (like `vim`, `nano`, `less`, `man`, `ssh`, `top`, etc.) directly from the REPL. When you run one of these commands, Binks will yield full control of the terminal to the program until it exits, then restore your prompt and session state. This means you can use editors, pagers, and SSH sessions as you would in a normal shell.
+
+**Supported interactive commands include:**
+- vim, nvim, vi
+- nano
+- less, more, man
+- ssh
+- top, htop
+
+If you find an interactive program that does not work as expected, please open an issue. For best results, ensure your terminal supports ANSI escape codes and is not running in a restricted environment.
