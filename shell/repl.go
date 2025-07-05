@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/chzyer/readline"
@@ -15,6 +16,11 @@ import (
 func RunREPL(sess *Session) error {
 	if isatty.IsTerminal(os.Stdin.Fd()) {
 		// Use readline for interactive TTY
+		homeDir, err := os.UserHomeDir()
+		if err != nil {
+			return fmt.Errorf("failed to get user home directory: %w", err)
+		}
+		historyFile := filepath.Join(homeDir, ".binks_history")
 		config := &readline.Config{
 			Prompt:          prompt(sess.Cwd()),
 			HistoryLimit:    100,
@@ -22,6 +28,7 @@ func RunREPL(sess *Session) error {
 			EOFPrompt:       "exit\n",
 			Stdin:           os.Stdin,
 			Stdout:          os.Stdout,
+			HistoryFile:     historyFile,
 		}
 		rl, err := readline.NewEx(config)
 		if err != nil {

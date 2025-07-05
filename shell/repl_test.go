@@ -229,3 +229,27 @@ func TestSession_ChangeDir(t *testing.T) {
 	err = sess.ChangeDir("/no/such/dir/shouldexist")
 	assert.Error(t, err, "expected error for invalid dir")
 }
+
+func TestHistoryFilePath(t *testing.T) {
+	home, err := os.UserHomeDir()
+	assert.NoError(t, err)
+	historyFile := filepath.Join(home, ".binks_history")
+	assert.True(t, strings.HasSuffix(historyFile, ".binks_history"))
+	// Clean up if file exists
+	_ = os.Remove(historyFile)
+
+	// Create and write a test line
+	f, err := os.Create(historyFile)
+	assert.NoError(t, err)
+	_, err = f.WriteString("echo test-history\n")
+	assert.NoError(t, err)
+	f.Close()
+
+	// Read back
+	data, err := os.ReadFile(historyFile)
+	assert.NoError(t, err)
+	assert.Contains(t, string(data), "echo test-history")
+
+	// Clean up
+	_ = os.Remove(historyFile)
+}

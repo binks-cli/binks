@@ -138,3 +138,11 @@ Other commands (including long-running ones like `sleep 10`) will block the prom
 
 - If you run a command not in the known list, it will run synchronously by default.
 - If you encounter a case where a GUI app blocks the prompt, please open an issue with details.
+
+---
+
+## Command History
+
+Binks automatically saves your command history to a file in your home directory (`~/.binks_history`). This allows you to recall commands from previous sessions using the Up/Down arrows, similar to other shells. If you wish to clear your history, simply delete this file.
+
+---
