@@ -2,13 +2,22 @@ package shell
 
 import (
 	"os"
+	"path/filepath"
 	"strings"
+
+	"gopkg.in/yaml.v3"
 )
 
 type ColorConfig struct {
-	PromptColor string
-	BranchColor string
-	ErrorColor  string
+	PromptColor string `yaml:"prompt_color"`
+	BranchColor string `yaml:"branch_color"`
+	ErrorColor  string `yaml:"error_color"`
+	// Future: add MCP, editor, etc.
+}
+
+type BinksConfig struct {
+	Colors ColorConfig `yaml:"colors"`
+	// Future: MCP, editor, etc.
 }
 
 var defaultColors = ColorConfig{
@@ -40,9 +49,19 @@ func getColor(name string) string {
 	return "" // fallback: no color
 }
 
-// LoadColorConfig loads color config from env vars, falling back to defaults
+// LoadColorConfig loads color config from YAML file and env vars, falling back to defaults
 func LoadColorConfig() ColorConfig {
 	cfg := defaultColors
+	fileCfg := readConfigFile()
+	if fileCfg.PromptColor != "" {
+		cfg.PromptColor = fileCfg.PromptColor
+	}
+	if fileCfg.BranchColor != "" {
+		cfg.BranchColor = fileCfg.BranchColor
+	}
+	if fileCfg.ErrorColor != "" {
+		cfg.ErrorColor = fileCfg.ErrorColor
+	}
 	if v := os.Getenv("BINKS_PROMPT_COLOR"); v != "" {
 		cfg.PromptColor = v
 	}
@@ -52,6 +71,24 @@ func LoadColorConfig() ColorConfig {
 	if v := os.Getenv("BINKS_ERROR_COLOR"); v != "" {
 		cfg.ErrorColor = v
 	}
-	// TODO: add YAML config file support
 	return cfg
+}
+
+// readConfigFile loads ~/.binks.yaml if present
+func readConfigFile() ColorConfig {
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return ColorConfig{}
+	}
+	path := filepath.Join(home, ".binks.yaml")
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return ColorConfig{}
+	}
+	var cfg BinksConfig
+	err = yaml.Unmarshal(data, &cfg)
+	if err != nil {
+		return ColorConfig{}
+	}
+	return cfg.Colors
 }
