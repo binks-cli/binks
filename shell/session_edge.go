@@ -1,6 +1,7 @@
 package shell
 
 import (
+	"fmt"
 	"regexp"
 	"strings"
 
@@ -14,9 +15,16 @@ func (s *Session) ExecuteLine(line string) (string, error) {
 		if strings.EqualFold(trimmed, "yes") {
 			cmd := s.pendingSuggestion.command
 			s.pendingSuggestion = nil
-			return s.RunCommand(cmd)
+			resp, err := s.RunCommand(cmd)
+			if s.Out != nil {
+				fmt.Fprintln(s.Out, resp)
+			}
+			return resp, err
 		} else if strings.EqualFold(trimmed, "no") {
 			s.pendingSuggestion = nil
+			if s.Out != nil {
+				fmt.Fprintln(s.Out, "Cancelled")
+			}
 			return "Cancelled", nil
 		}
 	}
@@ -26,6 +34,9 @@ func (s *Session) ExecuteLine(line string) (string, error) {
 		}
 		resp, err := s.Agent.Respond(trimmed)
 		if err != nil {
+			if s.Err != nil {
+				fmt.Fprintln(s.Err, "[AI] error:", err)
+			}
 			return "[AI] error: " + err.Error(), err
 		}
 		// Parse AI response for code block (shell command)
@@ -38,11 +49,21 @@ func (s *Session) ExecuteLine(line string) (string, error) {
 				confirmed:   false,
 				declined:    false,
 			}
+			if s.Out != nil {
+				fmt.Fprintf(s.Out, "AI suggests: %s\n", command)
+			}
 			return "[AI]", nil // Signal to REPL to prompt for confirmation
+		}
+		if s.Out != nil {
+			fmt.Fprintln(s.Out, resp)
 		}
 		return "[AI] " + resp, nil
 	}
-	return s.RunCommand(line)
+	resp, err := s.RunCommand(line)
+	if s.Out != nil {
+		fmt.Fprintln(s.Out, resp)
+	}
+	return resp, err
 }
 
 // parseAISuggestion extracts explanation and the first shell command code block from AI response.

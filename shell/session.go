@@ -1,6 +1,7 @@
 package shell
 
 import (
+	"io"
 	"os"
 	"path/filepath"
 	"strings"
@@ -10,13 +11,15 @@ import (
 )
 
 // Session represents the state of a shell session
+// Add Out and Err for output capturing
 type Session struct {
 	Executor          executor.Executor
 	Agent             agent.Agent        // AI agent for handling AI queries
 	cwd               string             // Current working directory
 	AIEnabled         bool               // Global AI mode toggle
 	pendingSuggestion *PendingSuggestion // Holds a pending AI suggestion for confirmation
-	// Future fields for working directory, history, etc.
+	Out               io.Writer          // For stdout (default: os.Stdout)
+	Err               io.Writer          // For stderr (default: os.Stderr)
 }
 
 // NewSession creates a new shell session
@@ -36,6 +39,8 @@ func NewSession() *Session {
 		Agent:     ag,
 		cwd:       wd,
 		AIEnabled: false, // Default to off
+		Out:       os.Stdout,
+		Err:       os.Stderr,
 	}
 }
 
