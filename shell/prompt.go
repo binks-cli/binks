@@ -26,7 +26,13 @@ func formatPrompt(cwd string) string {
 	if home != "" && strings.HasPrefix(cwd, home) {
 		shortCwd = "~" + cwd[len(home):]
 	}
-	return getColor(colorConfig.PromptColor) + "binks:" + shortCwd + " > " + ResetColor + " "
+	branch := GetGitBranch(cwd)
+	prompt := getColor(colorConfig.PromptColor) + "binks:" + shortCwd
+	if branch != "" {
+		prompt += " " + getColor(colorConfig.BranchColor) + "(" + branch + ")" + ResetColor
+	}
+	prompt += " > " + ResetColor + " "
+	return prompt
 }
 
 // ErrorMessage returns a colored error message string for the given error
