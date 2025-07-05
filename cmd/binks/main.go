@@ -23,14 +23,14 @@ func main() {
 
 	// Properly quote and join all arguments after the program name to form the command
 	command := shellquote.Join(os.Args[1:]...)
-	
+
 	exec := executor.NewBashExecutor()
 	output, err := exec.RunCommand(command)
-	
+
 	if err != nil {
 		fmt.Fprint(os.Stderr, shell.ErrorMessage(err))
 		os.Exit(1)
 	}
-	
+
 	fmt.Print(output)
 }

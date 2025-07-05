@@ -10,11 +10,9 @@ import (
 
 var ansiRegexp = regexp.MustCompile(`\x1b\[[0-9;]*m`)
 
-const (
-	PromptColor = "\x1b[36m" // Cyan
-	ErrorColor  = "\x1b[31m" // Red
-	ResetColor  = "\x1b[0m"
-)
+var colorConfig = LoadColorConfig()
+
+const ResetColor = "\x1b[0m"
 
 // StripANSI removes ANSI escape codes from a string (for test compatibility)
 func StripANSI(s string) string {
@@ -28,7 +26,12 @@ func formatPrompt(cwd string) string {
 	if home != "" && strings.HasPrefix(cwd, home) {
 		shortCwd = "~" + cwd[len(home):]
 	}
-	return PromptColor + "binks:" + shortCwd + " > " + ResetColor + " "
+	return getColor(colorConfig.PromptColor) + "binks:" + shortCwd + " > " + ResetColor + " "
+}
+
+// ErrorMessage returns a colored error message string for the given error
+func ErrorMessage(err error) string {
+	return getColor(colorConfig.ErrorColor) + "Error: " + err.Error() + ResetColor + "\n"
 }
 
 // plainPrompt returns the prompt string without color codes
@@ -47,9 +50,4 @@ func prompt(cwd string) string {
 		return formatPrompt(cwd)
 	}
 	return plainPrompt(cwd)
-}
-
-// ErrorMessage returns a red-colored error message string for the given error
-func ErrorMessage(err error) string {
-	return ErrorColor + "Error: " + err.Error() + ResetColor + "\n"
 }
