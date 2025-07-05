@@ -453,9 +453,10 @@ func TestRunREPL_NonTTY(t *testing.T) {
 }
 
 type errLineReader struct{}
+
 func (e *errLineReader) Readline() (string, error) { return "", io.ErrUnexpectedEOF }
-func (e *errLineReader) SetPrompt(string)         {}
-func (e *errLineReader) Close() error             { return nil }
+func (e *errLineReader) SetPrompt(string)          {}
+func (e *errLineReader) Close() error              { return nil }
 
 func TestRunREPLInteractive_ErrorHandling(t *testing.T) {
 	sess := NewSession()
