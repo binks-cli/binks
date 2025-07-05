@@ -7,9 +7,21 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/binks-cli/binks/internal/agent"
 	"github.com/binks-cli/binks/internal/executor"
 	"github.com/stretchr/testify/assert"
 )
+
+type mockExecutor struct {
+	lastCmd string
+	resp    string
+	err     error
+}
+
+func (m *mockExecutor) RunCommand(cmd string) (string, error) {
+	m.lastCmd = cmd
+	return m.resp, m.err
+}
 
 func TestSession_ChangeDir_EdgeCases(t *testing.T) {
 	tmp := t.TempDir()
@@ -143,5 +155,51 @@ func TestSession_ChangeDir_PlatformSpecific(t *testing.T) {
 		err = sess.ChangeDir("..")
 		assert.NoError(t, err)
 		assert.Equal(t, "/", sess.Cwd())
+	}
+}
+
+func TestSession_ExecuteLine_Shell(t *testing.T) {
+	s := &Session{
+		Executor: &mockExecutor{resp: "shell output"},
+		Agent:    nil,
+		cwd:      ".",
+	}
+	out, err := s.ExecuteLine("ls -l")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if out != "shell output" {
+		t.Errorf("expected 'shell output', got %q", out)
+	}
+}
+
+func TestSession_ExecuteLine_AI(t *testing.T) {
+	s := &Session{
+		Executor: &mockExecutor{resp: "shell output"},
+		Agent:    &agent.DummyAgent{},
+		cwd:      ".",
+	}
+	out, err := s.ExecuteLine(">> hello agent")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	want := "[AI] Echo: hello agent"
+	if out != want {
+		t.Errorf("expected %q, got %q", want, out)
+	}
+}
+
+func TestSession_ExecuteLine_AIError(t *testing.T) {
+	s := &Session{
+		Executor: &mockExecutor{resp: "shell output"},
+		Agent:    agent.AgentFunc(func(prompt string) (string, error) { return "", errors.New("fail") }),
+		cwd:      ".",
+	}
+	out, err := s.ExecuteLine(">> fail")
+	if err == nil {
+		t.Error("expected error, got nil")
+	}
+	if out != "[AI] error: fail" {
+		t.Errorf("expected error output, got %q", out)
 	}
 }

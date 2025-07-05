@@ -20,9 +20,9 @@ func TestIsAIQuery(t *testing.T) {
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			got := isAIQuery(tc.input)
+			got := IsAIQuery(tc.input)
 			if got != tc.want {
-				t.Errorf("isAIQuery(%q) = %v, want %v", tc.input, got, tc.want)
+				t.Errorf("IsAIQuery(%q) = %v, want %v", tc.input, got, tc.want)
 			}
 		})
 	}
